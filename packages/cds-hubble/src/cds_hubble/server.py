@@ -13,14 +13,7 @@ def root(request: Request):
 
 routes = [
     Route("/", endpoint=root),
-    # Mount("/hubbles-law/", solara.server.starlette.app),
     Mount("/hubbles-law/", routes=solara.server.starlette.routes),
 ]
-
-# middleware = [
-#     Middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True),
-#     Middleware(SessionMiddleware, secret_key="some-secret", max_age=None),
-# ]
-
 
 app = Starlette(routes=routes, middleware=solara.server.starlette.middleware)

@@ -1,10 +1,10 @@
 import solara
 import reacton.ipyvuetify as rv
-from ..state import GLOBAL_STATE
 from solara.lab import Ref
 from solara_enterprise import auth
 from ..utils import get_session_id
 from solara import Reactive
+from ..base_states import BaseAppState
 
 
 def _save_to_cache(class_code: str, update_db: bool, debug_mode: bool):
@@ -17,6 +17,7 @@ def _save_to_cache(class_code: str, update_db: bool, debug_mode: bool):
 
 @solara.component
 def Login(
+    global_state: Reactive[BaseAppState],
     active: Reactive[bool],
     class_code: Reactive[str],
     update_db: Reactive[bool],
@@ -31,7 +32,7 @@ def Login(
         persistent=True,
         overlay_color="grey darken-2",
     ) as login:
-        team_interface = Ref(GLOBAL_STATE.fields.show_team_interface)
+        team_interface = Ref(global_state.fields.show_team_interface)
 
         with rv.Card():
             with rv.CardText():
@@ -47,7 +48,9 @@ def Login(
                     )
 
                     solara.InputText(
-                        label="Enter Class Code", value=class_code, continuous_update=True,
+                        label="Enter Class Code",
+                        value=class_code,
+                        continuous_update=True,
                     )
 
                     solara.Button(

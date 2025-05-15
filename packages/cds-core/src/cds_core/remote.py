@@ -1,12 +1,13 @@
-from solara_enterprise import auth
 import hashlib
 import os
-from requests import Session
 from functools import cached_property
 
-from .state import GLOBAL_STATE, BaseLocalState, BaseState, GlobalState, Student
+from requests import Session
 from solara import Reactive
 from solara.lab import Ref
+from solara_enterprise import auth
+
+from .base_states import BaseAppState, BaseStoryState, BaseStageState, BaseState
 from .logger import setup_logger
 
 logger = setup_logger("API")
@@ -51,23 +52,19 @@ class BaseAPI:
         r = self.request_session.get(f"{self.API_URL}/student/{self.hashed_user}")
         return r.json()["student"] is not None
 
-    
     @property
     def is_educator(self):
-        r = self.request_session.get(
-            f"{self.API_URL}/educators/{self.hashed_user}"
-        )
+        r = self.request_session.get(f"{self.API_URL}/educators/{self.hashed_user}")
         return r.json()["educator"] is not None
-    
 
-    def update_class_size(self, state: Reactive[GlobalState]):
+    def update_class_size(self, state: Reactive[BaseAppState]):
         class_id = state.value.classroom.class_info["id"]
         size_json = self.request_session.get(
             f"{self.API_URL}/classes/size/{class_id}"
         ).json()
         Ref(state.fields.classroom.size).set(size_json["size"])
 
-    def load_user_info(self, story_name: str, state: Reactive[GlobalState]):
+    def load_user_info(self, story_name: str, state: Reactive[BaseAppState]):
         student_json = self.request_session.get(
             f"{self.API_URL}/student/{self.hashed_user}"
         ).json()["student"]
@@ -84,7 +81,7 @@ class BaseAPI:
         logger.info("Loaded user info for user `%s`.", state.value.student.id)
 
     def create_new_user(
-        self, story_name: str, class_code: str, state: Reactive[GlobalState]
+        self, story_name: str, class_code: str, state: Reactive[BaseAppState]
     ):
         r = self.request_session.get(f"{self.API_URL}/student/{self.hashed_user}")
         student = r.json()["student"]
@@ -122,18 +119,18 @@ class BaseAPI:
 
     def put_stage_state(
         self,
-        global_state: Reactive[GlobalState],
-        local_state: Reactive[BaseLocalState],
-        component_state: Reactive[BaseState],
+        global_state: Reactive[BaseAppState],
+        local_state: Reactive[BaseStoryState],
+        component_state: Reactive[BaseStageState],
     ):
         raise NotImplementedError()
 
     def get_stage_state(
         self,
-        global_state: Reactive[GlobalState],
-        local_state: Reactive[BaseLocalState],
-        component_state: Reactive[BaseState],
-    ) -> BaseState | None:
+        global_state: Reactive[BaseAppState],
+        local_state: Reactive[BaseStoryState],
+        component_state: Reactive[BaseStageState],
+    ) -> BaseStageState | None:
 
         if not global_state.value.update_db or self.is_educator:
             logger.info("Skipping retrieval of Component state.")
@@ -164,9 +161,9 @@ class BaseAPI:
 
     def delete_stage_state(
         self,
-        global_state: Reactive[GlobalState],
-        local_state: Reactive[BaseLocalState],
-        component_state: Reactive[BaseState],
+        global_state: Reactive[BaseAppState],
+        local_state: Reactive[BaseStoryState],
+        component_state: Reactive[BaseStageState],
     ):
         if not global_state.value.update_db or self.is_educator:
             logger.info("Skipping deletion of stage state.")
@@ -197,10 +194,11 @@ class BaseAPI:
             return
 
     def get_app_story_states(
-        self, global_state: Reactive[GlobalState], local_state: Reactive[BaseLocalState]
-    ) -> BaseLocalState | None:
+        self,
+        global_state: Reactive[BaseAppState],
+        local_state: Reactive[BaseStoryState],
+    ) -> BaseStoryState | None:
         if global_state.value.update_db and not self.is_educator:
-
             story_json = (
                 self.request_session.get(
                     f"{self.API_URL}/story-state/{global_state.value.student.id}/"
@@ -211,29 +209,34 @@ class BaseAPI:
             )
 
             if story_json is None:
-                logger.error(f"Failed to retrieve state for story {local_state.value.story_id} for user {global_state.value.student.id}.")
-                return
+                logger.error(
+                    f"Failed to retrieve state for story {local_state.value.story_id} "
+                    f"for user {global_state.value.student.id}."
+                )
+                return None
 
         else:
             logger.info("Skipping retrieval of Global and Local states.")
             story_json = {
-                "app": GlobalState(
-                    student=GLOBAL_STATE.value.student, 
-                    show_team_interface = GLOBAL_STATE.value.show_team_interface, 
-                    classroom = GLOBAL_STATE.value.classroom,
-                    educator = GLOBAL_STATE.value.educator,
-                    update_db = GLOBAL_STATE.value.update_db,
-                    ).model_dump(),
-                "story": type(local_state.value)(
-                    title=local_state.value.title, story_id=local_state.value.story_id
-                ).as_dict(), # type: ignore
+                "app": global_state.value.__class__(
+                    student=global_state.value.student,
+                    show_team_interface=global_state.value.show_team_interface,
+                    classroom=global_state.value.classroom,
+                    educator=global_state.value.educator,
+                    update_db=global_state.value.update_db,
+                ).model_dump(),
+                "story": local_state.value.__class__(
+                    title=local_state.value.title,
+                    story_id=local_state.value.story_id,
+                    current_step=1,
+                ).as_dict(),
             }
 
         global_state_json = story_json.get("app", {})
-        BaseAPI._update_state(global_state, global_state_json)
-
         local_state_json = story_json.get("story", {})
-        BaseAPI._update_state(local_state, local_state_json)
+        global_state_json["story_state"] = local_state_json
+
+        self._update_state(global_state, global_state_json)
 
         logger.info("Updated local state from database.")
 
@@ -241,21 +244,21 @@ class BaseAPI:
 
     def put_story_state(
         self,
-        global_state: Reactive[GlobalState],
-        local_state: Reactive[BaseLocalState],
+        global_state: Reactive[BaseAppState],
+        local_state: Reactive[BaseStoryState],
     ):
         raise NotImplementedError()
 
     @staticmethod
-    def clear_user(state: Reactive[GlobalState]):
+    def clear_user(state: Reactive[BaseAppState]):
         Ref(state.fields.student.id).set(0)
         Ref(state.fields.classroom.class_info).set({})
         Ref(state.fields.classroom.size).set(0)
 
     @staticmethod
     def _update_state(state: Reactive[BaseState], data: dict):
+        print(data)
+        print(state.value.__class__)
         new_state = state.value.__class__(**data)
-        state.value.__dict__.update(new_state.__dict__)
-
-
-BASE_API = BaseAPI()
+        state.set(new_state)
+        # state.value.__dict__.update(new_state.__dict__)

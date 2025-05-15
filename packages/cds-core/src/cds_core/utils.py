@@ -26,6 +26,7 @@ from threading import Timer, Event
 from functools import wraps
 from traitlets import Unicode
 from zmq.eventloop.ioloop import IOLoop
+from enum import Enum
 
 __all__ = [
     "load_template",
@@ -44,9 +45,12 @@ __all__ = [
 # The URL for the CosmicDS API
 API_URL = "https://api.cosmicds.cfa.harvard.edu"
 
-CDS_IMAGE_BASE_URL = "https://cosmicds.github.io/cds-website/cosmicds_images/mean_median_mode"
+CDS_IMAGE_BASE_URL = (
+    "https://cosmicds.github.io/cds-website/cosmicds_images/mean_median_mode"
+)
 
 DEFAULT_VIEWER_HEIGHT = 300
+
 
 def get_session_id() -> str:
     """Returns the session id, which is stored using a browser cookie."""
@@ -69,6 +73,8 @@ class CDSJSONEncoder(json.JSONEncoder):
             return obj.as_dict()
         if isinstance(obj, datetime):
             return f"{obj}"
+        if isinstance(obj, Enum):
+            return obj.value
         return super(CDSJSONEncoder, self).default(obj)
 
 
@@ -434,7 +440,7 @@ def component_type_for_field(info: FieldInfo) -> Type[Component]:
     return Component if numerical else CategoricalComponent
 
 
-def empty_data_from_model_class(cls: Type[BaseModel], label: str | None=None):
+def empty_data_from_model_class(cls: Type[BaseModel], label: str | None = None):
     data_dict = {}
     for field, info in cls.model_fields.items():
         if info.annotation is None:
@@ -447,10 +453,15 @@ def empty_data_from_model_class(cls: Type[BaseModel], label: str | None=None):
     return Data(**data_dict)
 
 
-def basic_link_exists(data_collection: DataCollection, id1: ComponentID, id2: ComponentID) -> bool:
+def basic_link_exists(
+    data_collection: DataCollection, id1: ComponentID, id2: ComponentID
+) -> bool:
     """NB: This only works for simple identity links."""
     ids = {id1, id2}
-    return any({link.get_from_ids()[0], link.get_to_id()} == ids for link in data_collection.links)
+    return any(
+        {link.get_from_ids()[0], link.get_to_id()} == ids
+        for link in data_collection.links
+    )
 
 
 def make_figure_autoresize(figure, height=DEFAULT_VIEWER_HEIGHT):
@@ -540,10 +551,10 @@ def show_legend(viewer: PlotlyBaseView, show: bool = True):
     layout_update: Dict = {"showlegend": show}
     if show:
         layout_update["legend"] = {
-            'yanchor': 'top',
-            'xanchor': 'left',
+            "yanchor": "top",
+            "xanchor": "left",
             "y": 0.99,
-            "x": 0.01
+            "x": 0.01,
         }
     viewer.figure.update_layout(**layout_update)
     return

@@ -1,33 +1,39 @@
-from cds_core.utils import CDSJSONEncoder
-from .state import ClassSummary, StudentMeasurement, StudentSummary
-from contextlib import closing
-from io import BytesIO
 import json
-from astropy.io import fits
-from .state import GalaxyData, SpectrumData, LocalState
-from cds_core.remote import BaseAPI
-from cds_core.state import GlobalState, BaseState, GLOBAL_STATE
-from solara import Reactive
-from solara.toestand import Ref
-from cds_core.logger import setup_logger
+from contextlib import closing
+from csv import DictReader
+from functools import cache
+from io import BytesIO
+from pathlib import Path
 from typing import List
 
-from pathlib import Path
-from csv import DictReader
+from astropy.io import fits
+from solara import Reactive
+from solara.toestand import Ref
 
-logger = setup_logger("API")
+from cds_core.base_states import BaseStageState, BaseStoryState
+from cds_core.logger import setup_logger
+from cds_core.remote import BaseAPI
+from cds_core.app_state import AppState
+from cds_core.utils import CDSJSONEncoder
+from .story_state import ClassSummary, StudentMeasurement, StudentSummary
+from .story_state import GalaxyData, SpectrumData, LocalState
 
-from .data_management import DB_VELOCITY_FIELD
-from numpy.random import Generator, PCG64, SeedSequence
-from numpy import arange, asarray, ravel, column_stack
+logger = setup_logger("CDS-HUBBLE API")
+
 from typing import Any
 from pandas import read_csv
 
-from .data_management import ELEMENT_REST
 DEBOUNCE_TIMEOUT = 1
 
 
 class LocalAPI(BaseAPI):
+    def get_app_story_states(
+        self, global_state: Reactive[AppState], local_state: Reactive[LocalState]
+    ) -> BaseStoryState | None:
+
+        return super().get_app_story_states(global_state, local_state)
+
+    @cache
     def get_galaxies(self, local_state: Reactive[LocalState]) -> list[GalaxyData]:
         galaxy_data_json = self.request_session.get(
             f"{self.API_URL}/{local_state.value.story_id}/galaxies?types=Sp"
@@ -38,7 +44,7 @@ class LocalAPI(BaseAPI):
         return galaxy_data
 
     def load_spectrum_data(
-        self, gal_data: GalaxyData, local_state: Reactive[LocalState]
+        self, local_state: Reactive[LocalState], gal_data: GalaxyData
     ) -> SpectrumData | None:
         file_name = f"{gal_data.name.replace('.fits', '')}.fits"
 
@@ -70,12 +76,13 @@ class LocalAPI(BaseAPI):
 
         return spec_data
 
-    def get_dummy_data(self) -> List[StudentMeasurement]:
+    @staticmethod
+    def get_dummy_data() -> List[StudentMeasurement]:
         path = (Path(__file__).parent / "data" / "dummy_student_data.csv").as_posix()
         measurements = []
         galaxy_prefix = "galaxy."
         galaxy_pref_len = len(galaxy_prefix)
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             reader = DictReader(f)
             for row in reader:
                 galaxy = {}
@@ -84,13 +91,15 @@ class LocalAPI(BaseAPI):
                     if key.startswith(galaxy_prefix):
                         galaxy[key[galaxy_pref_len:]] = value
                         keys_to_remove.add(key)
-                measurement = { k: v for k, v in row.items() if k not in keys_to_remove }
+                measurement = {k: v for k, v in row.items() if k not in keys_to_remove}
                 measurement["galaxy"] = galaxy
                 measurements.append(StudentMeasurement(**measurement))
         return measurements
 
     def get_measurements(
-        self, global_state: Reactive[GlobalState], local_state: Reactive[LocalState]
+        self,
+        global_state: Reactive[AppState],
+        local_state: Reactive[LocalState],
     ) -> list[StudentMeasurement]:
         url = (
             f"{self.API_URL}/{local_state.value.story_id}/measurements/"
@@ -100,9 +109,9 @@ class LocalAPI(BaseAPI):
             Ref(local_state.fields.measurements_loaded).set(True)
             logger.info("Skipping retrieval of measurements from database.")
             return []
-        
+
         r = self.request_session.get(url)
-            
+
         measurements = Ref(local_state.fields.measurements)
         if r.status_code == 200:
             measurement_json = r.json()
@@ -122,9 +131,11 @@ class LocalAPI(BaseAPI):
         return measurements.value
 
     def get_sample_measurements(
-        self, global_state: Reactive[GlobalState], local_state: Reactive[LocalState]
+        self,
+        global_state: Reactive[AppState],
+        local_state: Reactive[LocalState],
     ) -> list[StudentMeasurement]:
-        
+
         if not global_state.value.update_db or self.is_educator:
             sample_measurement_json = {"measurements": []}
         else:
@@ -142,12 +153,12 @@ class LocalAPI(BaseAPI):
                 global_state.value.student.id,
             )
             sample_gal_data = LOCAL_API.get_sample_galaxy(local_state)
-            for meas in ['first', 'second']:
+            for meas in ["first", "second"]:
                 sample_measurement_json["measurements"].append(
                     StudentMeasurement(
                         student_id=global_state.value.student.id,
                         galaxy=sample_gal_data,
-                        measurement_number=meas
+                        measurement_number=meas,
                     ).dict()
                 )
         elif len(sample_measurement_json["measurements"]) == 1:
@@ -159,7 +170,7 @@ class LocalAPI(BaseAPI):
                 StudentMeasurement(
                     student_id=global_state.value.student.id,
                     galaxy=sample_gal_data,
-                    measurement_number='second'
+                    measurement_number="second",
                 ).dict()
             )
 
@@ -177,13 +188,15 @@ class LocalAPI(BaseAPI):
         return sample_measurements.value
 
     def put_measurements(
-        self, global_state: Reactive[GlobalState], local_state: Reactive[LocalState]
-    ):  
-        
-        if not GLOBAL_STATE.value.update_db or self.is_educator: 
-            logger.info('Skipping DB write')
+        self,
+        global_state: Reactive[AppState],
+        local_state: Reactive[LocalState],
+    ):
+
+        if not global_state.value.update_db or self.is_educator:
+            logger.info("Skipping DB write")
             return False
-        
+
         url = f"{self.API_URL}/{local_state.value.story_id}/submit-measurement/"
 
         for measurement in local_state.value.measurements:
@@ -203,14 +216,14 @@ class LocalAPI(BaseAPI):
         return True
 
     def put_sample_measurements(
-        self, global_state: Reactive[GlobalState], local_state: Reactive[LocalState]
+        self, global_state: Reactive[AppState], local_state: Reactive[LocalState]
     ):
-        if not GLOBAL_STATE.value.update_db or self.is_educator: 
-            logger.info('Skipping DB write')
+        if not global_state.value.update_db or self.is_educator:
+            logger.info("Skipping DB write")
             return False
-        
+
         url = f"{self.API_URL}/{local_state.value.story_id}/sample-measurement/"
-    
+
         for i, measurement in enumerate(local_state.value.example_measurements):
             if i == 0:
                 logger.info(
@@ -236,9 +249,9 @@ class LocalAPI(BaseAPI):
 
     def get_measurement(
         self,
-        galaxy_id: int,
-        global_state: Reactive[GlobalState],
+        global_state: Reactive[AppState],
         local_state: Reactive[LocalState],
+        galaxy_id: int,
     ) -> StudentMeasurement:
         logger.info(
             "Retrieving measurement of galaxy %s for student %s...",
@@ -259,9 +272,9 @@ class LocalAPI(BaseAPI):
 
     def get_sample_measurement(
         self,
-        galaxy_id: int,
-        global_state: Reactive[GlobalState],
+        global_state: Reactive[AppState],
         local_state: Reactive[LocalState],
+        galaxy_id: int,
     ) -> StudentMeasurement:
         logger.info(
             "Retrieving sample measurement of galaxy %s for student %s...",
@@ -282,12 +295,14 @@ class LocalAPI(BaseAPI):
         return measurement
 
     def delete_all_measurements(
-        self, global_state: Reactive[GlobalState], local_state: Reactive[LocalState]
+        self,
+        global_state: Reactive[AppState],
+        local_state: Reactive[LocalState],
     ):
         if not global_state.value.update_db or self.is_educator:
             logger.info("Skipping deletion of measurements.")
             return
-        
+
         url = f"{self.API_URL}/{local_state.value.story_id}/measurements/{global_state.value.student.id}"
         measurements_json = self.request_session.get(url).json()
 
@@ -304,7 +319,10 @@ class LocalAPI(BaseAPI):
                 )
                 logger.error(r.text)
 
-    def get_sample_galaxy(self, local_state: Reactive[LocalState]) -> GalaxyData:
+    def get_sample_galaxy(
+        self,
+        local_state: Reactive[LocalState],
+    ) -> GalaxyData:
         galaxy_json = self.request_session.get(
             f"{self.API_URL}/{local_state.value.story_id}/sample-galaxy"
         ).json()
@@ -315,7 +333,7 @@ class LocalAPI(BaseAPI):
 
     def get_class_measurements(
         self,
-        global_state: Reactive[GlobalState],
+        global_state: Reactive[AppState],
         local_state: Reactive[LocalState],
     ) -> list[StudentMeasurement]:
         url = (
@@ -341,10 +359,13 @@ class LocalAPI(BaseAPI):
 
     def get_students_completed_measurements_count(
         self,
-        global_state: Reactive[GlobalState],
+        global_state: Reactive[AppState],
         local_state: Reactive[LocalState],
     ) -> int:
-        if global_state.value.classroom.class_info is None or 'id' not in global_state.value.classroom.class_info:
+        if (
+            global_state.value.classroom.class_info is None
+            or "id" not in global_state.value.classroom.class_info
+        ):
             logger.warning("No class id found in classroom info.")
             return 0
         url = (
@@ -357,7 +378,7 @@ class LocalAPI(BaseAPI):
 
     def get_all_data(
         self,
-        global_state: Reactive[GlobalState],
+        global_state: Reactive[AppState],
         local_state: Reactive[LocalState],
     ) -> tuple[list[StudentMeasurement], list[StudentSummary], list[ClassSummary]]:
         url = f"{self.API_URL}/{local_state.value.story_id}/all-data?minimal=True"
@@ -398,14 +419,14 @@ class LocalAPI(BaseAPI):
 
     def put_stage_state(
         self,
-        global_state: Reactive[GlobalState],
+        global_state: Reactive[AppState],
         local_state: Reactive[LocalState],
-        component_state: Reactive[BaseState],
+        component_state: Reactive[BaseStageState],
     ):
-        if not GLOBAL_STATE.value.update_db or self.is_educator: 
-            logger.info('Skipping DB write')
+        if not global_state.value.update_db or self.is_educator:
+            logger.info("Skipping DB write")
             return False
-        
+
         logger.info("Serializing stage state into DB.")
 
         comp_state_dict = component_state.value.dict(
@@ -425,18 +446,16 @@ class LocalAPI(BaseAPI):
             logger.error("Failed to write story state to database.")
             logger.error(r.text)
             return False
-        
+
         return True
 
     def put_story_state(
-        self,
-        global_state: Reactive[GlobalState],
-        local_state: Reactive[LocalState],
+        self, global_state: Reactive[AppState], local_state: Reactive[LocalState]
     ):
-        if not GLOBAL_STATE.value.update_db or self.is_educator: 
-            logger.info('Skipping DB write')
+        if not global_state.value.update_db or self.is_educator:
+            logger.info("Skipping DB write")
             return False
-        
+
         logger.info("Serializing state into DB.")
 
         state = {
@@ -455,36 +474,35 @@ class LocalAPI(BaseAPI):
             logger.error("Failed to write story state to database.")
             logger.error(r.text)
             return False
-        
-        return True
-    
-    import json
 
-    def get_example_seed_measurement(
-            self, 
-            local_state: Reactive[LocalState],
-            which="both"
-            ) -> list[dict[str, Any]]:
+        return True
+
+    def get_example_seed_measurement(self, which="both") -> list[dict[str, Any]]:
         # url = f"{self.API_URL}/{local_state.value.story_id}/sample-measurements"
         # r = self.request_session.get(url)
         # res_json = r.json()
-        path = (Path(__file__).parent / "data" / "ExampleGalaxyDataFromStudents.csv").as_posix()
+        path = (
+            Path(__file__).parent / "data" / "ExampleGalaxyDataFromStudents.csv"
+        ).as_posix()
         # with open(path, 'r') as f:
         #     res_json = json.load(f)
-        res_json = read_csv(path).to_dict(orient='records')
+        res_json = read_csv(path).to_dict(orient="records")
 
         random_subset = range(len(res_json))
         measurements = []
 
-        _filter_func = lambda x: res_json[x]['measurement_number'] == which
-        filtered = filter(_filter_func, random_subset) if which != 'both' else random_subset
-        
-        classes_to_ignore = [209] # list of class id's to ignore
-        _class_id_filter = lambda x: res_json[x]['class_id'] not in classes_to_ignore
+        _filter_func = lambda x: res_json[x]["measurement_number"] == which
+        filtered = (
+            filter(_filter_func, random_subset) if which != "both" else random_subset
+        )
+
+        classes_to_ignore = [209]  # list of class id's to ignore
+        _class_id_filter = lambda x: res_json[x]["class_id"] not in classes_to_ignore
         filtered = filter(_class_id_filter, filtered)
         for i in filtered:
             measurements.append(res_json[i])
 
         return measurements
+
 
 LOCAL_API = LocalAPI()

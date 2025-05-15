@@ -5,11 +5,12 @@ import solara
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
 from reacton import ipyvuetify as rv
+from solara import Reactive
 
-from ...widgets.hubble_wwt import HubbleWWTWidget
-
-from ...state import LOCAL_STATE
+from ...remote import LOCAL_API
+from ...story_state import LocalState
 from ...utils import GALAXY_FOV
+from ...widgets.hubble_wwt import HubbleWWTWidget
 
 SDSS = "SDSS9 color"
 DSS = "Digitized Sky Survey (Color)"
@@ -21,6 +22,7 @@ START_COORDINATES = SkyCoord(180 * u.deg, 25 * u.deg, frame="icrs")
 
 @solara.component
 def SelectionTool(
+    local_state: Reactive[LocalState],
     show_galaxies: bool,
     galaxy_selected_callback: Callable,
     galaxy_added_callback: Callable,
@@ -57,6 +59,7 @@ def SelectionTool(
                         )
 
                 if selected.value is not None:
+
                     def _on_galaxy_added():
                         galaxy_added_callback(selected.value)
                         selected.set(None)
@@ -99,7 +102,7 @@ def SelectionTool(
                     absolute=True,
                     style="--margin: 15px; --card-padding: 16px; bottom: 0px !important; margin-bottom: var(--margin); margin-right: calc(var(--margin) - var(--card-padding));",
                     children=[rv.Icon(children=["mdi-cached"])],
-                    on_click=lambda: reset_view.set(not reset_view.value)
+                    on_click=lambda: reset_view.set(not reset_view.value),
                 )
 
                 rv.Tooltip(
@@ -125,9 +128,7 @@ def SelectionTool(
                         right=True,
                         absolute=True,
                         style_="--margin: 15px; --card-padding: 16px; top: 0px !important; margin-top: var(--margin); margin-right: calc(var(--margin) - var(--card-padding));",
-                        children=[
-                            rv.Icon(children=["mdi-refresh"])
-                        ],
+                        children=[rv.Icon(children=["mdi-refresh"])],
                         on_click=lambda: refresh_images.set(not refresh_images.value),
                     )
 
@@ -206,7 +207,7 @@ def SelectionTool(
             _go_to_location(
                 wwt_widget,
                 coords=SkyCoord(galaxy["ra"], galaxy["decl"], unit=u.deg),
-                fov=fov
+                fov=fov,
             )
             selected.set(galaxy)
             galaxy_selected_callback(galaxy)
@@ -227,7 +228,7 @@ def SelectionTool(
         if current_layer.value is None:
             table = Table(
                 {
-                    k: [x.dict()[k] for x in LOCAL_STATE.value.galaxies.values()]
+                    k: [x.dict()[k] for x in LOCAL_API.get_galaxies(local_state)]
                     for k in ["id", "ra", "decl"]
                 }
             )
@@ -269,7 +270,9 @@ def SelectionTool(
                 instant = True
 
         wwt_widget.center_on_coordinates(
-            coords, fov=fov, instant=instant,
+            coords,
+            fov=fov,
+            instant=instant,
         )
 
     def _on_reset_view():
@@ -299,10 +302,11 @@ def SelectionTool(
         coords = SkyCoord(galaxy["ra"] * u.deg, galaxy["decl"] * u.deg, frame="icrs")
 
         wwt_widget = solara.get_widget(wwt_container).children[0]
-        _go_to_location(wwt_widget,
-                        coords=coords,
-                        fov=GALAXY_FOV,
-                        motion_counted=True)
+        _go_to_location(wwt_widget, coords=coords, fov=GALAXY_FOV, motion_counted=True)
 
-    solara.use_effect(lambda: _update_position(selected_galaxy), dependencies=[selected_galaxy])
-    solara.use_effect(lambda: _update_position(candidate_galaxy), dependencies=[candidate_galaxy])
+    solara.use_effect(
+        lambda: _update_position(selected_galaxy), dependencies=[selected_galaxy]
+    )
+    solara.use_effect(
+        lambda: _update_position(candidate_galaxy), dependencies=[candidate_galaxy]
+    )

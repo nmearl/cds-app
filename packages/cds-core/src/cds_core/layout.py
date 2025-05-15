@@ -12,7 +12,7 @@ from solara.server import settings
 from solara.toestand import Ref
 from solara_enterprise import auth
 
-from  . import load_custom_vue_components
+from . import load_custom_vue_components
 from .components.login import Login
 from .components.speech_settings import SpeechSettings
 from .components.tooltip_menu import TooltipMenu
@@ -21,8 +21,8 @@ from .utils import get_session_id
 from .components.breakpoint_watcher.breakpoint_watcher import BreakpointWatcher
 from .components.location_helper.location_helper import LocationHelper
 from .components.theme_toggle import ThemeToggle
-from .remote import BASE_API
-from .state import GLOBAL_STATE, BaseLocalState
+from .base_states import BaseStoryState, BaseAppState
+from .remote import BaseAPI
 
 filterwarnings(action="ignore", category=UserWarning)
 
@@ -33,14 +33,13 @@ logger = setup_logger("LAYOUT")
 
 
 def BaseSetup(
+    remote_api: BaseAPI,
+    global_state: Reactive[BaseAppState],
+    local_state: Reactive[BaseStoryState],
     force_demo: bool = False,
-    story_name: str = "",
-    story_title: str = "Cosmic Data Story",
 ):
-    active = solara.use_reactive(False)
     class_code = solara.use_reactive("")
-    update_db = solara.use_reactive(False)
-    debug_mode = solara.use_reactive(True)
+    debug_mode = solara.use_reactive(force_demo)
     router = solara.use_router()
 
     def _component_setup():
@@ -51,97 +50,89 @@ def BaseSetup(
 
     solara.use_memo(_component_setup, dependencies=[])
 
-    # Attempt to load saved setup state
-    def _load_from_cache():
-        logger.info(f"Loading from cache.")
-        cache = solara.cache.storage.get(f"cds-login-options-{get_session_id()}")
+    def _initial_setup():
+        educator_mode = False
 
-        if cache is not None:
-            for key, state in [
-                ("class_code", class_code),
-                ("update_db", update_db),
-                ("debug_mode", debug_mode),
-            ]:
-                if key in cache:
-                    state.set(cache[key])
+        if bool(auth.user.value):
+            if remote_api.is_educator:
+                debug_mode.set(True)
+                educator_mode = True
+                Ref(global_state.fields.update_db).set(False)
+                Ref(global_state.fields.show_team_interface).set(True)
+                Ref(global_state.fields.educator).set(True)
 
-    solara.use_memo(_load_from_cache, dependencies=[])
-
-    educator_mode = False
-    if bool(auth.user.value):
-        if BASE_API.is_educator:
-            force_demo = True
-            educator_mode = True
-            Ref(GLOBAL_STATE.fields.update_db).set(False)
-            Ref(GLOBAL_STATE.fields.show_team_interface).set(True)
-            Ref(GLOBAL_STATE.fields.educator).set(True)
-
-    if force_demo:
-        logger.info("Loading app in demo mode.")
-        if educator_mode:
-            auth.user.set(
-                {
-                    "userinfo": {
-                        "cds/name": "Demo Teacher",
-                        "cds/email": "demo_teacher@some.email",
-                        "cds/picture": "https://s.gravatar.com/avatar/d49c4a758d6e45538cd0fb4cd09e91eb?s=480&r=pg&d=https%3A%2F%2Fcdn.auth0.com%2Favatars%2Fco.png",
-                        "nickname": "cosmicds",
-                        "name": "Demo Teacher",
-                        "picture": "https://s.gravatar.com/avatar/d49c4a758d6e45538cd0fb4cd09e91eb?s=480&r=pg&d=https%3A%2F%2Fcdn.auth0.com%2Favatars%2Fco.png",
-                        "updated_at": "2025-02-06T17:47:34.507Z",
-                        "email": "demo_teacher@some.email",
-                        "email_verified": True,
+        if debug_mode.value:
+            logger.info("Loading app in demo mode.")
+            if educator_mode:
+                auth.user.set(
+                    {
+                        "userinfo": {
+                            "cds/name": "Demo Teacher",
+                            "cds/email": "demo_teacher@some.email",
+                            "cds/picture": "https://s.gravatar.com/avatar/d49c4a758d6e45538cd0fb4cd09e91eb?s=480&r=pg&d=https%3A%2F%2Fcdn.auth0.com%2Favatars%2Fco.png",
+                            "nickname": "cosmicds",
+                            "name": "Demo Teacher",
+                            "picture": "https://s.gravatar.com/avatar/d49c4a758d6e45538cd0fb4cd09e91eb?s=480&r=pg&d=https%3A%2F%2Fcdn.auth0.com%2Favatars%2Fco.png",
+                            "updated_at": "2025-02-06T17:47:34.507Z",
+                            "email": "demo_teacher@some.email",
+                            "email_verified": True,
+                        }
                     }
-                }
-            )
-        else:
-            auth.user.set(
-                {
-                    "userinfo": {
-                        "cds/name": "Demo User",
-                        "cds/email": "cosmicds@cfa.harvard.edu",
-                        "cds/picture": "https://s.gravatar.com/avatar/d49c4a758d6e45538cd0fb4cd09e91eb?s=480&r=pg&d=https%3A%2F%2Fcdn.auth0.com%2Favatars%2Fco.png",
-                        "nickname": "cosmicds",
-                        "name": "Demo User",
-                        "picture": "https://s.gravatar.com/avatar/d49c4a758d6e45538cd0fb4cd09e91eb?s=480&r=pg&d=https%3A%2F%2Fcdn.auth0.com%2Favatars%2Fco.png",
-                        "updated_at": "2025-02-06T17:47:34.507Z",
-                        "email": "cosmicds@cfa.harvard.edu",
-                        "email_verified": True,
+                )
+            else:
+                auth.user.set(
+                    {
+                        "userinfo": {
+                            "cds/name": "Demo User",
+                            "cds/email": "cosmicds@cfa.harvard.edu",
+                            "cds/picture": "https://s.gravatar.com/avatar/d49c4a758d6e45538cd0fb4cd09e91eb?s=480&r=pg&d=https%3A%2F%2Fcdn.auth0.com%2Favatars%2Fco.png",
+                            "nickname": "cosmicds",
+                            "name": "Demo User",
+                            "picture": "https://s.gravatar.com/avatar/d49c4a758d6e45538cd0fb4cd09e91eb?s=480&r=pg&d=https%3A%2F%2Fcdn.auth0.com%2Favatars%2Fco.png",
+                            "updated_at": "2025-02-06T17:47:34.507Z",
+                            "email": "cosmicds@cfa.harvard.edu",
+                            "email_verified": True,
+                        }
                     }
-                }
-            )
-        class_code.set("215")
+                )
+            class_code.set("215")
 
-    if bool(auth.user.value):
-        logger.debug("User is authenticated.")
-        if BASE_API.user_exists:
-            BASE_API.load_user_info(story_name, GLOBAL_STATE)
-        elif bool(class_code.value):
-            BASE_API.create_new_user(story_name, class_code.value, GLOBAL_STATE)
-        else:
-            logger.error("User is authenticated, but does not exist.")
-            router.push(auth.get_logout_url())
-    elif not bool(auth.user.value):
-        logger.debug("User has not authenticated.")
-        BASE_API.clear_user(GLOBAL_STATE)
-        origin_split = settings.main.base_url.split("//")
-        root_url = "//".join(
-            [
-                origin_split[0],
-                "/".join(
-                    [
-                        x
-                        for x in origin_split[1].split("/")
-                        if x not in router.root_path.split("/")
-                    ]
-                ),
-            ]
-        )
-        LocationHelper(url=root_url)
+        if bool(auth.user.value):
+            logger.debug("User is authenticated.")
+            if remote_api.user_exists:
+                remote_api.load_user_info(local_state.value.story_id, global_state)
+            elif bool(class_code.value):
+                remote_api.create_new_user(
+                    local_state.value.title, class_code.value, global_state
+                )
+            else:
+                logger.error("User is authenticated, but does not exist.")
+                router.push(auth.get_logout_url())
+        elif not bool(auth.user.value):
+            logger.debug("User has not authenticated.")
+            remote_api.clear_user(global_state)
+            origin_split = settings.main.base_url.split("//")
+            root_url = "//".join(
+                [
+                    origin_split[0],
+                    "/".join(
+                        [
+                            x
+                            for x in origin_split[1].split("/")
+                            if x not in router.root_path.split("/")
+                        ]
+                    ),
+                ]
+            )
+            LocationHelper(url=root_url)
+
+    solara.use_memo(_initial_setup, dependencies=[])
 
 
 def BaseLayout(
-    local_state: Optional[Reactive[BaseLocalState]] = None,
+    remote_api: BaseAPI,
+    global_state: Reactive[BaseAppState],
+    local_state: Optional[Reactive[BaseStoryState]] = None,
     children: list = [],
     story_name: str = "",
     story_title: str = "Cosmic Data Story",
@@ -150,7 +141,7 @@ def BaseLayout(
     speech_menu = solara.use_reactive(False)
     stu_info_panel = solara.use_reactive([0])
 
-    speech = Ref(GLOBAL_STATE.fields.speech)
+    speech = Ref(global_state.fields.speech)
 
     router = solara.use_router()
     route_current, routes_current_level = solara.use_route(peek=True)
@@ -183,7 +174,7 @@ def BaseLayout(
         info = (auth.user.value or {}).get("userinfo")
 
         if info is not None and "cds/name" in info and "cds/email" in info:
-            return {**info, "id": GLOBAL_STATE.value.student.id}
+            return {**info, "id": global_state.value.student.id}
 
         return {
             "cds/name": "Undefined",
@@ -223,7 +214,7 @@ def BaseLayout(
         #     children=["Cosmic Data Story"],
         #     class_="ml-8 app-title",
         # )
-        if GLOBAL_STATE.value.educator:
+        if global_state.value.educator:
             rv.Html(
                 tag="h3",
                 class_="ml-8 app-title",
@@ -240,7 +231,7 @@ def BaseLayout(
             offset_y=True,
             close_on_content_click=False,
         ):
-            initial_settings = GLOBAL_STATE.value.speech.model_dump()
+            initial_settings = global_state.value.speech.model_dump()
 
             def update_speech_property(prop, value):
                 settings = speech.value.model_copy()
@@ -316,7 +307,7 @@ def BaseLayout(
                                                     ),
                                                     rv.Html(
                                                         tag="h4",
-                                                        children=f"Student ID: {GLOBAL_STATE.value.student.id}",
+                                                        children=f"Student ID: {global_state.value.student.id}",
                                                     ),
                                                 ],
                                             )
@@ -325,7 +316,7 @@ def BaseLayout(
                                     rv.ExpansionPanelContent(
                                         children=[
                                             rv.TextField(
-                                                value=f"{BASE_API.hashed_user}",
+                                                value=f"{remote_api.hashed_user}",
                                                 label="Anonymized ID",
                                                 readonly=True,
                                                 outlined=True,

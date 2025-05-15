@@ -1,4 +1,4 @@
-from ..state import Speech
+from ..app_state import Speech
 import solara
 import inspect
 from pathlib import Path
@@ -19,7 +19,7 @@ def ScaffoldAlert(
     state_view: dict = None,
     event_force_transition: Callable = lambda *args: None,
     speech: Optional[Speech] = None,
-    **kwargs
+    **kwargs,
 ):
     """
     Initializes and configures a ScaffoldAlert component.
@@ -136,5 +136,5 @@ def ScaffoldAlert(
         state_view=state_view,
         event_force_transition=event_force_transition,
         speech=speech_dict,
-        **kwargs
+        **kwargs,
     )
