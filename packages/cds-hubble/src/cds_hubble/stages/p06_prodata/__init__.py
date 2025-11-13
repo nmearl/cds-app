@@ -76,10 +76,7 @@ def Page(app_state: Reactive[AppState]):
         # returns the slope, m,  of y(x) = m*x
         return sum(x * y) / sum(x * x)
 
-    def _on_component_state_loaded(value: bool):
-        if not value:
-            return
-
+    def _on_component_state_loaded():
         class_age = Ref(stage_state.fields.class_age)
 
         data = gjapp.data_collection["Class Data"]
