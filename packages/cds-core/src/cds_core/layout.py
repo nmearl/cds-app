@@ -140,8 +140,8 @@ def BaseSetup(
 
 def BaseLayout(
     remote_api: BaseAPI,
-    global_state: Reactive[BaseAppState],
-    local_state: Optional[Reactive[BaseStoryState]] = None,
+    app_state: Reactive[BaseAppState],
+    story_state: Optional[Reactive[BaseStoryState]] = None,
     children: list = [],
     story_name: str = "",
     story_title: str = "Cosmic Data Story",
@@ -150,7 +150,7 @@ def BaseLayout(
     speech_menu = solara.use_reactive(False)
     stu_info_panel = solara.use_reactive([0])
 
-    speech = Ref(global_state.fields.speech)
+    speech = Ref(app_state.fields.speech)
 
     router = solara.use_router()
     route_current, routes_current_level = solara.use_route(peek=True)
@@ -183,7 +183,7 @@ def BaseLayout(
         info = (auth.user.value or {}).get("userinfo")
 
         if info is not None and "cds/name" in info and "cds/email" in info:
-            return {**info, "id": global_state.value.student.id}
+            return {**info, "id": app_state.value.student.id}
 
         return {
             "cds/name": "Undefined",
@@ -223,7 +223,7 @@ def BaseLayout(
         #     children=["Cosmic Data Story"],
         #     class_="ml-8 app-title",
         # )
-        if global_state.value.educator:
+        if app_state.value.educator:
             rv.Html(
                 tag="h3",
                 class_="ml-8 app-title",
@@ -240,7 +240,7 @@ def BaseLayout(
             offset_y=True,
             close_on_content_click=False,
         ):
-            initial_settings = global_state.value.speech.model_dump()
+            initial_settings = app_state.value.speech.model_dump()
 
             def update_speech_property(prop, value):
                 settings = speech.value.model_copy()
@@ -273,10 +273,10 @@ def BaseLayout(
 
         with rv.Chip(class_="ma-2 piggy-chip"):
 
-            if local_state is not None:
+            if story_state is not None:
                 # TODO: Check that this doesn't make solara render the whole
                 #  app. if it does, move the chip into its own component.
-                solara.Text(f"{local_state.value.piggybank_total} Points")
+                solara.Text(f"{story_state.value.piggybank_total} Points")
 
             rv.Icon(
                 class_="ml-2",
@@ -316,7 +316,7 @@ def BaseLayout(
                                                     ),
                                                     rv.Html(
                                                         tag="h4",
-                                                        children=f"Student ID: {global_state.value.student.id}",
+                                                        children=f"Student ID: {app_state.value.student.id}",
                                                     ),
                                                 ],
                                             )
@@ -368,10 +368,10 @@ def BaseLayout(
             ):
                 for i, route in enumerate(routes_current_level):
                     disabled = False
-                    if local_state is not None:
+                    if story_state is not None:
                         disabled = (
-                            local_state.value.max_route_index is not None
-                            and i > local_state.value.max_route_index
+                            story_state.value.max_route_index is not None
+                            and i > story_state.value.max_route_index
                         )
 
                     with rv.ListItem(disabled=disabled, inactive=disabled) as list_item:

@@ -17,50 +17,50 @@ logger = setup_logger("LAYOUT")
 
 
 def _load_state(
-    global_state: Reactive[AppState], local_state: Reactive[StoryState], *args, **kwargs
+    app_state: Reactive[AppState], story_state: Reactive[StoryState], *args, **kwargs
 ):
     # Force reset global and local states
     logger.info("Clearing local states.")
-    local_state.set(local_state.value.__class__())
+    story_state.set(story_state.value.__class__())
 
-    logger.info(f"Student ID: {global_state.value.student.id}")
-    logger.info(f"Class info: {global_state.value.classroom.class_info}")
+    logger.info(f"Student ID: {app_state.value.student.id}")
+    logger.info(f"Class info: {app_state.value.classroom.class_info}")
 
-    student_id = Ref(global_state.fields.student.id)
+    student_id = Ref(app_state.fields.student.id)
 
     if student_id.value is None:
         logger.warning(
-            f"Failed to load measurements: ID `{global_state.value.student.id}` not found."
+            f"Failed to load measurements: ID `{app_state.value.student.id}` not found."
         )
         return
 
     logger.info(
         "Loading story stage and measurements for user `%s`.",
-        global_state.value.student.id,
+        app_state.value.student.id,
     )
 
     # Retrieve the student's app and local states
-    LOCAL_API.get_app_story_states(global_state, local_state)
+    LOCAL_API.get_app_story_states(app_state, story_state)
 
     # Load in the student's measurements
-    measurements = LOCAL_API.get_measurements(global_state, local_state)
-    sample_measurements = LOCAL_API.get_sample_measurements(global_state, local_state)
+    measurements = LOCAL_API.get_measurements(app_state, story_state)
+    sample_measurements = LOCAL_API.get_sample_measurements(app_state, story_state)
 
     logger.info("Finished loading state.")
 
-    Ref(local_state.fields.measurements_loaded).set(True)
+    Ref(story_state.fields.measurements_loaded).set(True)
 
 
 def _write_state(
-    patch: dict, global_state: Reactive[AppState], local_state: Reactive[StoryState]
+    patch: dict, app_state: Reactive[AppState], story_state: Reactive[StoryState]
 ):
     # Listen for changes in the states and write them to the database
-    patch_state = LOCAL_API.patch_story_state(patch, global_state, local_state)
+    patch_state = LOCAL_API.patch_story_state(patch, app_state, story_state)
 
     # Be sure to write the measurement data separately since it's stored
     #  in another location in the database
-    put_meas = LOCAL_API.put_measurements(global_state, local_state)
-    put_samp = LOCAL_API.put_sample_measurements(global_state, local_state)
+    put_meas = LOCAL_API.put_measurements(app_state, story_state)
+    put_samp = LOCAL_API.put_sample_measurements(app_state, story_state)
 
     if patch_state and put_meas and put_samp:
         logger.info("Wrote state to database.")
@@ -75,16 +75,16 @@ def _write_state(
 
 def Layout(
     children=[],
-    global_state: Reactive[AppState] = None,
-    local_state: Reactive[StoryState] = None,
+    app_state: Reactive[AppState] = None,
+    story_state: Reactive[StoryState] = None,
 ):
-    BaseSetup(remote_api=LOCAL_API, global_state=global_state, local_state=local_state)
+    BaseSetup(remote_api=LOCAL_API, global_state=app_state, local_state=story_state)
 
     initial_state_loaded = solara.use_reactive(False)
 
     # Load stored state from the server
     def _state_setup():
-        _load_state(global_state, local_state)
+        _load_state(app_state, story_state)
         initial_state_loaded.set(True)
 
     solara.use_memo(_state_setup, dependencies=[])
@@ -94,23 +94,23 @@ def Layout(
     def _consume_write_state():
         while True:
             if not initial_state_loaded.value:
-                time.sleep(1)
+                time.sleep(5)
                 continue
 
             if not initial_state_written.value:
                 logger.info(f"Initializing with full DB write.")
-                _write_state(global_state.value.as_dict(), global_state, local_state)
+                _write_state(app_state.value.as_dict(), app_state, story_state)
                 initial_state_written.set(True)
                 continue
 
             # Retrieve current state
-            old_state = global_state.value.as_dict()
+            old_state = app_state.value.as_dict()
 
             # Sleep for 2 seconds
             time.sleep(2)
 
             # Retrieve state after sleep
-            new_state = global_state.value.as_dict()
+            new_state = app_state.value.as_dict()
 
             # Get state diff to send atomic updates
             diff = extract_changed_subtree(old_state, new_state)
@@ -120,7 +120,7 @@ def Layout(
                 continue
 
             # Write the state to the server
-            _write_state(diff, global_state, local_state)
+            _write_state(diff, app_state, story_state)
 
     solara.lab.use_task(_consume_write_state, dependencies=[])
 
@@ -139,9 +139,9 @@ def Layout(
         logger.info(f"Storing path location as `{route_current.path}`")
         # Store the current route index so that users will be returned to their
         #  previous location when they return to the app
-        Ref(local_state.fields.last_route).set(f"{route_current.path}")
-        Ref(local_state.fields.max_route_index).set(
-            max(route_index or 0, local_state.value.max_route_index or 0)
+        Ref(story_state.fields.last_route).set(f"{route_current.path}")
+        Ref(story_state.fields.max_route_index).set(
+            max(route_index or 0, story_state.value.max_route_index or 0)
         )
 
     solara.use_effect(_store_user_location, dependencies=[route_current])
@@ -153,13 +153,13 @@ def Layout(
         time.sleep(0.5)
         if not route_restored.value:
             if (
-                local_state.value.last_route is not None
-                and route_current.path != local_state.value.last_route
+                story_state.value.last_route is not None
+                and route_current.path != story_state.value.last_route
             ):
                 logger.info(
-                    f"Restoring path location to `{local_state.value.last_route}`"
+                    f"Restoring path location to `{story_state.value.last_route}`"
                 )
-                push_to_route(router, location, local_state.value.last_route)
+                push_to_route(router, location, story_state.value.last_route)
 
             route_restored.set(True)
 
@@ -171,9 +171,9 @@ def Layout(
     if auth.user.value is not None and route_restored.value:
         BaseLayout(
             remote_api=LOCAL_API,
-            global_state=global_state,
-            local_state=local_state,
+            app_state=app_state,
+            story_state=story_state,
             children=children,
-            story_name=local_state.value.story_id,
-            story_title=local_state.value.title,
+            story_name=story_state.value.story_id,
+            story_title=story_state.value.title,
         )

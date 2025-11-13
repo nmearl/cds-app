@@ -17,7 +17,7 @@ from .state import APP_STATE, LOCAL_STATE
 
 MetaLayout = solara.component(
     lambda *args, **kwargs: Layout(
-        *args, **kwargs, local_state=LOCAL_STATE, global_state=APP_STATE
+        *args, **kwargs, story_state=LOCAL_STATE, app_state=APP_STATE
     )
 )
 
