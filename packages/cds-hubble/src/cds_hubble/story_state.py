@@ -107,12 +107,18 @@ class StoryState(BaseStoryState):
     title: str = "Hubble's Law"
     story_id: str = "hubbles_law"
     type: str = "hubbles_law"
-    measurements: list[StudentMeasurement] = []
-    example_measurements: list[StudentMeasurement] = []
-    class_measurements: list[StudentMeasurement] = []
-    all_measurements: list[StudentMeasurement] = []
-    student_summaries: list[StudentSummary] = []
-    class_summaries: list[ClassSummary] = []
+    measurements: list[StudentMeasurement] = Field(default_factory=list, exclude=True)
+    example_measurements: list[StudentMeasurement] = Field(
+        default_factory=list, exclude=True
+    )
+    class_measurements: list[StudentMeasurement] = Field(
+        default_factory=list, exclude=True
+    )
+    all_measurements: list[StudentMeasurement] = Field(
+        default_factory=list, exclude=True
+    )
+    student_summaries: list[StudentSummary] = Field(default_factory=list, exclude=True)
+    class_summaries: list[ClassSummary] = Field(default_factory=list, exclude=True)
     measurements_loaded: bool = False
     calculations: dict = {}
     validation_failure_counts: dict = {}

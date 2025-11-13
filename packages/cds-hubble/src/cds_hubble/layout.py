@@ -94,7 +94,7 @@ def Layout(
     def _consume_write_state():
         while True:
             if not initial_state_loaded.value:
-                time.sleep(5)
+                time.sleep(2)
                 continue
 
             if not initial_state_written.value:

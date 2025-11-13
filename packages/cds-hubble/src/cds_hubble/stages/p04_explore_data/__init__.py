@@ -497,7 +497,6 @@ def Page(app_state: Reactive[AppState]):
                     event,
                     story_state,
                     stage_state,
-                    lambda: LOCAL_API.put_story_state(app_state, story_state),
                 ),
                 state_view={
                     "free_response_a": get_free_response("shortcoming-1", stage_state),
