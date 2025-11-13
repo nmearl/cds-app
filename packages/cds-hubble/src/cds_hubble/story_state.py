@@ -128,8 +128,8 @@ class StoryState(BaseStoryState):
     last_route: Optional[str] = None
     route_restored: bool = Field(False, exclude=True)
     # TODO: Remove these fields when the new state is fully implemented
-    mc_scoring: dict[str, dict] = {"scores": {}}
-    free_responses: dict[str, dict] = {"responses": {}}
+    # mc_scoring: dict[str, dict] = {"scores": {}}
+    # free_responses: dict[str, dict] = {"responses": {}}
 
     def as_dict(self):
         return self.model_dump(exclude=self.excluded_fields)
@@ -188,11 +188,24 @@ class StoryState(BaseStoryState):
 BaseComponentStateT = TypeVar("BaseComponentStateT", bound="BaseComponentState")
 
 
+def get_free_response(tag: str, stage_state: Reactive[BaseComponentStateT]):
+    """
+    Get Free Response dictionary by tag
+    """
+    return stage_state.value.free_responses.get(tag, FreeResponse(tag=tag)).model_dump()
+
+
+def get_mc_response(tag: str, stage_state: Reactive[BaseComponentStateT]):
+    """
+    Get Multiple Choice dictionary by tag
+    """
+    return stage_state.value.multiple_choice_responses.get(
+        tag, MultipleChoiceResponse(tag=tag)
+    ).model_dump()
+
+
 def mc_callback(
-    event,
-    local_state: Reactive[StoryState],
-    component_state: Reactive[BaseComponentStateT],
-    callback: Optional[Callable] = None,
+    event, story_state: Reactive[StoryState], stage_state: Reactive[BaseComponentStateT]
 ):
     """
     Multiple Choice callback function
@@ -200,13 +213,13 @@ def mc_callback(
     if event[0] == "mc-score":
         logger.debug(f"MC Score event received: {event[1]}")
         new_response = MultipleChoiceResponse(
-            **{**event[1], "stage": component_state.value.stage_id}
+            **{**event[1], "stage": stage_state.value.stage_id}
         )
-        Ref(component_state.fields.multiple_choice_responses[new_response.tag]).set(
+        Ref(stage_state.fields.multiple_choice_responses[new_response.tag]).set(
             new_response
         )
 
-        bank_total_ref = Ref(local_state.fields.piggybank_total)
+        bank_total_ref = Ref(story_state.fields.piggybank_total)
         logger.debug(
             f"Updating piggy bank total from {bank_total_ref.value} to "
             f"{bank_total_ref.value + new_response.score}"
@@ -216,16 +229,13 @@ def mc_callback(
 
 def fr_callback(
     event: Tuple[str, dict[str, str]],
-    local_state: Reactive[StoryState],
-    component_state: Reactive[BaseComponentStateT],
-    callback: Optional[Callable] = None,
+    story_state: Reactive[StoryState],
+    stage_state: Reactive[BaseComponentStateT],
 ):
     """
     Free Response callback function
     """
     if event[0] == "fr-update":
         logger.debug(f"Free Response update event received: {event[1]}")
-        new_response = FreeResponse(
-            **{**event[1], "stage": component_state.value.stage_id}
-        )
-        Ref(component_state.fields.free_responses[new_response.tag]).set(new_response)
+        new_response = FreeResponse(**{**event[1], "stage": stage_state.value.stage_id})
+        Ref(stage_state.fields.free_responses[new_response.tag]).set(new_response)

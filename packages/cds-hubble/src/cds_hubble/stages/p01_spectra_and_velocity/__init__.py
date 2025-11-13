@@ -58,6 +58,7 @@ from ...story_state import (
     StudentMeasurement,
     # get_multiple_choice,
     mc_callback,
+    get_mc_response,
 )
 from ...utils import (
     push_to_route,
@@ -680,10 +681,7 @@ def Page(app_state: Reactive[AppState]):
                         event, story_state, stage_state
                     ),
                     state_view={
-                        "mc_score": stage_state.value.multiple_choice_responses.get(
-                            "interpret-velocity",
-                            MultipleChoiceResponse(tag="interpret-velocity"),
-                        ).model_dump(),
+                        "mc_score": get_mc_response("interpret-velocity", stage_state),
                         "score_tag": "interpret-velocity",
                     },
                     show_team_interface=app_state.value.show_team_interface,
@@ -751,10 +749,7 @@ def Page(app_state: Reactive[AppState]):
                 ),
                 show=stage_state.value.is_current_step(Marker.ref_vel1),
                 state_view={
-                    "mc_score": stage_state.value.multiple_choice_responses.get(
-                        "reflect_vel_value",
-                        MultipleChoiceResponse(tag="reflect_vel_value"),
-                    ).model_dump(),
+                    "mc_score": get_mc_response("reflect_vel_value", stage_state),
                     "score_tag": "reflect_vel_value",
                 },
                 speech=speech.value,
@@ -1056,10 +1051,7 @@ def Page(app_state: Reactive[AppState]):
                     event_zoom_to_range=lambda event: dotplot_bounds.set([9000, 13500]),
                     show=stage_state.value.is_current_step(Marker.dot_seq8),
                     state_view={
-                        "mc_score": stage_state.value.multiple_choice_responses.get(
-                            "vel_meas_consensus",
-                            MultipleChoiceResponse(tag="vel_meas_consensus"),
-                        ).model_dump(),
+                        "mc_score": get_mc_response("vel_meas_consensus", stage_state),
                         "score_tag": "vel_meas_consensus",
                     },
                     speech=speech.value,
@@ -1522,36 +1514,25 @@ def Page(app_state: Reactive[AppState]):
                                 max_step_completed=stage_state.value.velocity_reflection_state.max_step_completed,
                                 reflection_complete=stage_state.value.reflection_complete,
                                 state_view={
-                                    "mc_score_2": stage_state.value.multiple_choice_responses.get(
-                                        "wavelength-comparison",
-                                        MultipleChoiceResponse(
-                                            tag="wavelength-comparison"
-                                        ),
-                                    ).model_dump(),
+                                    "mc_score_2": get_mc_response(
+                                        "wavelength-comparison", stage_state
+                                    ),
                                     "score_tag_2": "wavelength-comparison",
-                                    "mc_score_3": stage_state.value.multiple_choice_responses.get(
-                                        "galaxy-motion",
-                                        MultipleChoiceResponse(tag="galaxy-motion"),
-                                    ).model_dump(),
+                                    "mc_score_3": get_mc_response(
+                                        "galaxy-motion", stage_state
+                                    ),
                                     "score_tag_3": "galaxy-motion",
-                                    "mc_score_4": stage_state.value.multiple_choice_responses.get(
-                                        "steady-state-consistent",
-                                        MultipleChoiceResponse(
-                                            tag="steady-state-consistent"
-                                        ),
-                                    ).model_dump(),
+                                    "mc_score_4": get_mc_response(
+                                        "steady-state-consistent", stage_state
+                                    ),
                                     "score_tag_4": "steady-state-consistent",
-                                    "mc_score_5": stage_state.value.multiple_choice_responses.get(
-                                        "moving-randomly-consistent",
-                                        MultipleChoiceResponse(
-                                            tag="moving-randomly-consistent"
-                                        ),
-                                    ).model_dump(),
+                                    "mc_score_5": get_mc_response(
+                                        "moving-randomly-consistent", stage_state
+                                    ),
                                     "score_tag_5": "moving-randomly-consistent",
-                                    "mc_score_6": stage_state.value.multiple_choice_responses.get(
-                                        "peers-data-agree",
-                                        MultipleChoiceResponse(tag="peers-data-agree"),
-                                    ).model_dump(),
+                                    "mc_score_6": get_mc_response(
+                                        "peers-data-agree", stage_state
+                                    ),
                                     "score_tag_6": "peers-data-agree",
                                 },
                                 event_set_dialog=show_reflection_dialog.set,

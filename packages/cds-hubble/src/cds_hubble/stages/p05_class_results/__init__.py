@@ -58,6 +58,8 @@ from ...story_state import (
     StudentSummary,
     mc_callback,
     fr_callback,
+    get_free_response,
+    get_mc_response,
 )
 from ...tools import *  # noqa
 from ...utils import (
@@ -597,24 +599,15 @@ def Page(app_state: Reactive[AppState]):
                     can_advance=stage_state.value.can_transition(next=True),
                     show=stage_state.value.is_current_step(Marker.you_age1c),
                     state_view={
-                        "low_guess": stage_state.value.free_responses.get(
-                            "likely-low-age",
-                            FreeResponse(tag="likely-low-age"),
-                        )
-                        .model_dump()
-                        .get("response"),
-                        "high_guess": stage_state.value.free_responses.get(
-                            "likely-high-age",
-                            FreeResponse(tag="likely-high-age"),
-                        )
-                        .model_dump()
-                        .get("response"),
-                        "best_guess": stage_state.value.free_responses.get(
-                            "best-guess-age",
-                            FreeResponse(tag="best-guess-age"),
-                        )
-                        .model_dump()
-                        .get("response"),
+                        "low_guess": get_free_response(
+                            "likely-low-age", stage_state
+                        ).get("response"),
+                        "high_guess": get_free_response(
+                            "likely-high-age", stage_state
+                        ).get("response"),
+                        "best_guess": get_free_response(
+                            "best-guess-age", stage_state
+                        ).get("response"),
                     },
                 )
 
@@ -647,10 +640,7 @@ def Page(app_state: Reactive[AppState]):
                         event, story_state, stage_state
                     ),
                     state_view={
-                        "mc_score": stage_state.value.multiple_choice_responses.get(
-                            "age-slope-trend",
-                            MultipleChoiceResponse(tag="age-slope-trend"),
-                        ).model_dump(),
+                        "mc_score": get_mc_response("age-slope-trend", stage_state),
                         "score_tag": "age-slope-trend",
                     },
                 )
@@ -766,41 +756,25 @@ def Page(app_state: Reactive[AppState]):
                             ).set(True),
                             step=stage_state.value.uncertainty_state.step,
                             max_step_completed=stage_state.value.uncertainty_state.max_step_completed,
-                            age_calc_short1=stage_4_state.value.free_responses.get(
-                                "shortcoming-1",
-                                FreeResponse(tag="shortcoming-1"),
-                            )
-                            .model_dump()
-                            .get("response"),
-                            age_calc_short2=stage_4_state.value.free_responses.get(
-                                "shortcoming-2",
-                                FreeResponse(tag="shortcoming-2"),
-                            )
-                            .model_dump()
-                            .get("response"),
-                            age_calc_short_other=stage_4_state.value.free_responses.get(
-                                "other-shortcomings",
-                                FreeResponse(tag="other-shortcomings"),
-                            )
-                            .model_dump()
-                            .get("response"),
+                            age_calc_short1=get_free_response(
+                                "shortcoming-1", stage_4_state
+                            ).get("response"),
+                            age_calc_short2=get_free_response(
+                                "shortcoming-2", stage_4_state
+                            ).get("response"),
+                            age_calc_short_other=get_free_response(
+                                "other-shortcomings", stage_4_state
+                            ).get("response"),
                             event_fr_callback=lambda event: fr_callback(
                                 event,
                                 story_state,
                                 stage_state,
-                                lambda: LOCAL_API.put_story_state(
-                                    app_state, story_state
-                                ),
                             ),
                             free_responses=[
-                                stage_state.value.free_responses.get(
-                                    "shortcoming-4",
-                                    FreeResponse(tag="shortcoming-4"),
-                                ).model_dump(),
-                                stage_state.value.free_responses.get(
-                                    "systematic-uncertainty",
-                                    FreeResponse(tag="systematic-uncertainty"),
-                                ).model_dump(),
+                                get_free_response("shortcoming-4", stage_state),
+                                get_free_response(
+                                    "systematic-uncertainty", stage_state
+                                ),
                             ],
                             event_set_step=uncertainty_step.set,
                             event_set_max_step_completed=uncertainty_max_step_completed.set,
@@ -871,39 +845,21 @@ def Page(app_state: Reactive[AppState]):
                         ).set(True),
                         step=stage_state.value.uncertainty_state.step,
                         max_step_completed=stage_state.value.uncertainty_state.max_step_completed,
-                        age_calc_short1=stage_state.value.free_responses.get(
-                            "shortcoming-1",
-                            FreeResponse(tag="shortcoming-1"),
-                        )
-                        .model_dump()
-                        .get("response"),
-                        age_calc_short2=stage_state.value.free_responses.get(
-                            "shortcoming-2",
-                            FreeResponse(tag="shortcoming-2"),
-                        )
-                        .model_dump()
-                        .get("response"),
-                        age_calc_short_other=stage_state.value.free_responses.get(
-                            "other-shortcomings",
-                            FreeResponse(tag="other-shortcomings"),
-                        )
-                        .model_dump()
-                        .get("response"),
+                        age_calc_short1=get_free_response(
+                            "shortcoming-1", stage_state
+                        ).get("response"),
+                        age_calc_short2=get_free_response(
+                            "shortcoming-2", stage_state
+                        ).get("response"),
+                        age_calc_short_other=get_free_response(
+                            "other-shortcomings", stage_state
+                        ).get("response"),
                         event_fr_callback=lambda event: fr_callback(
-                            event,
-                            story_state,
-                            stage_state,
-                            lambda: LOCAL_API.put_story_state(app_state, story_state),
+                            event, story_state, stage_state
                         ),
                         free_responses=[
-                            stage_state.value.free_responses.get(
-                                "shortcoming-4",
-                                FreeResponse(tag="shortcoming-4"),
-                            ).model_dump(),
-                            stage_state.value.free_responses.get(
-                                "systematic-uncertainty",
-                                FreeResponse(tag="systematic-uncertainty"),
-                            ).model_dump(),
+                            get_free_response("shortcoming-4", stage_state),
+                            get_free_response("systematic-uncertainty", stage_state),
                         ],
                         event_set_step=uncertainty_step.set,
                         event_set_max_step_completed=uncertainty_max_step_completed.set,
@@ -1021,20 +977,10 @@ def Page(app_state: Reactive[AppState]):
         event_back_callback=lambda _: transition_previous(stage_state),
         can_advance=stage_state.value.can_transition(next=True),
         show=stage_state.value.is_current_step(Marker.mos_lik4),
-        event_fr_callback=lambda event: fr_callback(
-            event,
-            story_state,
-            stage_state,
-            lambda: LOCAL_API.put_story_state(app_state, story_state),
-        ),
+        event_fr_callback=lambda event: fr_callback(event, story_state, stage_state),
         state_view={
-            "free_response_a": stage_state.value.free_responses.get(
-                "best-guess-age", FreeResponse(tag="best-guess-age")
-            ).model_dump(),
-            # 'best_guess_answered': local_state.value.question_completed("best-guess-age"),
-            "free_response_b": stage_state.value.free_responses.get(
-                "my-reasoning", FreeResponse(tag="my-reasoning")
-            ).model_dump(),
+            "free_response_a": get_free_response("best-guess-age", stage_state),
+            "free_response_b": get_free_response("my-reasoning", stage_state),
         },
     )
 
@@ -1044,23 +990,11 @@ def Page(app_state: Reactive[AppState]):
         event_back_callback=lambda _: transition_previous(stage_state),
         can_advance=stage_state.value.can_transition(next=True),
         show=stage_state.value.is_current_step(Marker.con_int3),
-        event_fr_callback=lambda event: fr_callback(
-            event,
-            story_state,
-            stage_state,
-            lambda: LOCAL_API.put_story_state(app_state, story_state),
-        ),
+        event_fr_callback=lambda event: fr_callback(event, story_state, stage_state),
         state_view={
-            "free_response_a": stage_state.value.free_responses.get(
-                "likely-low-age", FreeResponse(tag="likely-low-age")
-            ).model_dump(),
-            "free_response_b": stage_state.value.free_responses.get(
-                "likely-high-age", FreeResponse(tag="likely-high-age")
-            ).model_dump(),
-            # 'high_low_answered': local_state.value.question_completed("likely-low-age") and local_state.value.question_completed("likely-high-age"),
-            "free_response_c": stage_state.value.free_responses.get(
-                "my-reasoning-2", FreeResponse(tag="my-reasoning-2")
-            ).model_dump(),
+            "free_response_a": get_free_response("likely-low-age", stage_state),
+            "free_response_b": get_free_response("likely-high-age", stage_state),
+            "free_response_c": get_free_response("my-reasoning-2", stage_state),
         },
     )
 
@@ -1119,10 +1053,7 @@ def Page(app_state: Reactive[AppState]):
                         event, story_state, stage_state
                     ),
                     state_view={
-                        "mc_score": stage_state.value.multiple_choice_responses.get(
-                            "histogram-range",
-                            MultipleChoiceResponse(tag="histogram-range"),
-                        ).model_dump(),
+                        "mc_score": get_mc_response("histogram-range", stage_state),
                         "score_tag": "histogram-range",
                     },
                 )
@@ -1136,10 +1067,9 @@ def Page(app_state: Reactive[AppState]):
                         event, story_state, stage_state
                     ),
                     state_view={
-                        "mc_score": stage_state.value.multiple_choice_responses.get(
-                            "histogram-percent-range",
-                            MultipleChoiceResponse(tag="histogram-percent-range"),
-                        ).model_dump(),
+                        "mc_score": get_mc_response(
+                            "histogram-percent-range", stage_state
+                        ),
                         "score_tag": "histogram-percent-range",
                     },
                 )
@@ -1153,10 +1083,9 @@ def Page(app_state: Reactive[AppState]):
                         event, story_state, stage_state
                     ),
                     state_view={
-                        "mc_score": stage_state.value.multiple_choice_responses.get(
-                            "histogram-distribution",
-                            MultipleChoiceResponse(tag="histogram-distribution"),
-                        ).model_dump(),
+                        "mc_score": get_mc_response(
+                            "histogram-distribution", stage_state
+                        ),
                         "score_tag": "histogram-distribution",
                     },
                 )
@@ -1167,16 +1096,12 @@ def Page(app_state: Reactive[AppState]):
                     can_advance=stage_state.value.can_transition(next=True),
                     show=stage_state.value.is_current_step(Marker.two_his5),
                     event_fr_callback=lambda event: fr_callback(
-                        event,
-                        story_state,
-                        stage_state,
-                        lambda: LOCAL_API.put_story_state(app_state, story_state),
+                        event, story_state, stage_state
                     ),
                     state_view={
-                        "free_response": stage_state.value.free_responses.get(
-                            "unc-range-change-reasoning",
-                            FreeResponse(tag="unc-range-change-reasoning"),
-                        ).model_dump(),
+                        "free_response": get_free_response(
+                            "unc-range-change-reasoning", stage_state
+                        ),
                     },
                 )
                 ScaffoldAlert(
@@ -1203,53 +1128,27 @@ def Page(app_state: Reactive[AppState]):
             can_advance=stage_state.value.can_transition(next=True),
             show=stage_state.value.is_current_step(Marker.con_int2c),
             event_fr_callback=lambda event: fr_callback(
-                event,
-                story_state,
-                stage_state,
-                lambda: LOCAL_API.put_story_state(app_state, story_state),
+                event, story_state, stage_state
             ),
             state_view={
-                "low_guess": stage_state.value.free_responses.get(
-                    "likely-low-age",
-                    FreeResponse(tag="likely-low-age"),
-                )
-                .model_dump()
-                .get("response"),
-                "high_guess": stage_state.value.free_responses.get(
-                    "likely-high-age",
-                    FreeResponse(tag="likely-high-age"),
-                )
-                .model_dump()
-                .get("response"),
-                "best_guess": stage_state.value.free_responses.get(
-                    "best-guess-age",
-                    FreeResponse(tag="best-guess-age"),
-                )
-                .model_dump()
-                .get("response"),
-                "free_response_a": stage_state.value.free_responses.get(
-                    "new-most-likely-age",
-                    FreeResponse(tag="new-most-likely-age"),
-                )
-                .model_dump()
-                .get("response"),
-                "free_response_b": stage_state.value.free_responses.get(
-                    "new-likely-low-age",
-                    FreeResponse(tag="new-likely-low-age"),
-                )
-                .model_dump()
-                .get("response"),
-                "free_response_c": stage_state.value.free_responses.get(
-                    "new-likely-high-age",
-                    FreeResponse(tag="new-likely-high-age"),
-                )
-                .model_dump()
-                .get("response"),
-                "free_response_d": stage_state.value.free_responses.get(
-                    "my-updated-reasoning",
-                    FreeResponse(tag="my-updated-reasoning"),
-                )
-                .model_dump()
-                .get("response"),
+                "low_guess": get_free_response("likely-low-age", stage_state).get(
+                    "response"
+                ),
+                "high_guess": get_free_response("likely-high-age", stage_state).get(
+                    "response"
+                ),
+                "best_guess": get_free_response("best-guess-age", stage_state).get(
+                    "response"
+                ),
+                "free_response_a": get_free_response(
+                    "new-most-likely-age", stage_state
+                ),
+                "free_response_b": get_free_response("new-likely-low-age", stage_state),
+                "free_response_c": get_free_response(
+                    "new-likely-high-age", stage_state
+                ),
+                "free_response_d": get_free_response(
+                    "my-updated-reasoning", stage_state
+                ),
             },
         )

@@ -8,7 +8,7 @@ from cds_core.logger import setup_logger
 from cds_core.app_state import AppState
 from ...components import Stage2Slideshow, STAGE_2_SLIDESHOW_LENGTH
 from ...remote import LOCAL_API
-from ...story_state import StoryState, mc_callback
+from ...story_state import StoryState, mc_callback, get_mc_response
 from .stage_state import StageState
 from ...utils import get_image_path, DISTANCE_CONSTANT, push_to_route
 
@@ -84,15 +84,9 @@ def Page(app_state: Reactive[AppState]):
         event_set_max_step_completed=max_step_completed.set,
         event_mc_callback=lambda event: mc_callback(event, story_state, stage_state),
         state_view={
-            "mc_score_1": stage_state.value.multiple_choice_responses.get(
-                "which-galaxy-closer",
-                MultipleChoiceResponse(tag="which-galaxy-closer"),
-            ).model_dump(),
+            "mc_score_1": get_mc_response("which-galaxy-closer", stage_state),
             "score_tag_1": "which-galaxy-closer",
-            "mc_score_2": stage_state.value.multiple_choice_responses.get(
-                "how-much-closer-galaxies",
-                MultipleChoiceResponse(tag="how-much-closer-galaxies"),
-            ).model_dump(),
+            "mc_score_2": get_mc_response("how-much-closer-galaxies", stage_state),
             "score_tag_2": "how-much-closer-galaxies",
         },
         event_return_to_stage1=lambda _: push_to_route(

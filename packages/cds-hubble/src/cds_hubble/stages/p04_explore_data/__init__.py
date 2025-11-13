@@ -39,6 +39,8 @@ from ...story_state import (
     StudentMeasurement,
     mc_callback,
     fr_callback,
+    get_free_response,
+    get_mc_response,
 )
 from ...utils import (
     AGE_CONSTANT,
@@ -378,10 +380,7 @@ def Page(app_state: Reactive[AppState]):
                     event, story_state, stage_state
                 ),
                 state_view={
-                    "mc_score": stage_state.value.multiple_choice_responses.get(
-                        "tre-dat-mc1",
-                        MultipleChoiceResponse(tag="tre-dat-mc1"),
-                    ).model_dump(),
+                    "mc_score": get_mc_response("tre-dat-mc1", stage_state),
                     "score_tag": "tre-dat-mc1",
                 },
             )
@@ -402,10 +401,7 @@ def Page(app_state: Reactive[AppState]):
                     event, story_state, stage_state
                 ),
                 state_view={
-                    "mc_score": stage_state.value.multiple_choice_responses.get(
-                        "tre-dat-mc3",
-                        MultipleChoiceResponse(tag="tre-dat-mc3"),
-                    ).model_dump(),
+                    "mc_score": get_mc_response("tre-dat-mc3", stage_state),
                     "score_tag": "tre-dat-mc3",
                 },
             )
@@ -419,10 +415,7 @@ def Page(app_state: Reactive[AppState]):
                     event, story_state, stage_state
                 ),
                 state_view={
-                    "mc_score": stage_state.value.multiple_choice_responses.get(
-                        "galaxy-trend",
-                        MultipleChoiceResponse(tag="galaxy-trend"),
-                    ).model_dump(),
+                    "mc_score": get_mc_response("galaxy-trend", stage_state),
                     "score_tag": "galaxy-trend",
                 },
             )
@@ -507,18 +500,11 @@ def Page(app_state: Reactive[AppState]):
                     lambda: LOCAL_API.put_story_state(app_state, story_state),
                 ),
                 state_view={
-                    "free_response_a": stage_state.value.free_responses.get(
-                        "shortcoming-1",
-                        FreeResponse(tag="shortcoming-1"),
-                    ).model_dump(),
-                    "free_response_b": stage_state.value.free_responses.get(
-                        "shortcoming-2",
-                        FreeResponse(tag="shortcoming-2"),
-                    ).model_dump(),
-                    "free_response_c": stage_state.value.free_responses.get(
-                        "other-shortcomings",
-                        FreeResponse(tag="other-shortcomings"),
-                    ).model_dump(),
+                    "free_response_a": get_free_response("shortcoming-1", stage_state),
+                    "free_response_b": get_free_response("shortcoming-2", stage_state),
+                    "free_response_c": get_free_response(
+                        "other-shortcomings", stage_state
+                    ),
                 },
             )
             ScaffoldAlert(
@@ -652,10 +638,7 @@ def Page(app_state: Reactive[AppState]):
                         step=stage_state.value.hubble_slideshow_state.step,
                         max_step_completed=stage_state.value.hubble_slideshow_state.max_step_completed,
                         state_view={
-                            "mc_score": stage_state.value.multiple_choice_responses.get(
-                                "race-age",
-                                MultipleChoiceResponse(tag="race-age"),
-                            ).model_dump(),
+                            "mc_score": get_mc_response("race-age", stage_state),
                             "score_tag": "race-age",
                         },
                         image_location=get_image_path(router, "stage_three"),
