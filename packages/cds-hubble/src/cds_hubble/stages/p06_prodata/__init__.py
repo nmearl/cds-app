@@ -76,22 +76,6 @@ def Page(app_state: Reactive[AppState]):
         # returns the slope, m,  of y(x) = m*x
         return sum(x * y) / sum(x * x)
 
-    def _on_component_state_loaded():
-        class_age = Ref(stage_state.fields.class_age)
-
-        data = gjapp.data_collection["Class Data"]
-        vel = data["velocity_value"]
-        dist = data["est_dist_value"]
-        # only accept rows where both velocity and distance exist
-        indices = where(
-            (vel != 0) & (vel is not None) & (dist != 0) & (dist is not None)
-        )
-        if indices[0].size > 0:
-            slope = linear_slope(dist[indices], vel[indices])
-            class_age.set(round(AGE_CONSTANT / slope, 8))
-
-    solara.use_memo(_on_component_state_loaded, dependencies=[])
-
     def _glue_setup() -> Tuple[JupyterApplication, HubbleFitView]:
         # NOTE: use_memo has to be part of the main page render. Including it
         #  in a conditional will result in an error.
@@ -172,6 +156,22 @@ def Page(app_state: Reactive[AppState]):
         return gjapp, viewer
 
     gjapp, viewer = solara.use_memo(_glue_setup)
+
+    def _on_component_state_loaded():
+        class_age = Ref(stage_state.fields.class_age)
+
+        data = gjapp.data_collection["Class Data"]
+        vel = data["velocity_value"]
+        dist = data["est_dist_value"]
+        # only accept rows where both velocity and distance exist
+        indices = where(
+            (vel != 0) & (vel is not None) & (dist != 0) & (dist is not None)
+        )
+        if indices[0].size > 0:
+            slope = linear_slope(dist[indices], vel[indices])
+            class_age.set(round(AGE_CONSTANT / slope, 8))
+
+    solara.use_memo(_on_component_state_loaded, dependencies=[])
 
     def show_fit_line(show=True):
         tool = viewer.toolbar.tools["hubble:linefit"]
@@ -347,7 +347,6 @@ def Page(app_state: Reactive[AppState]):
                     event,
                     story_state,
                     stage_state,
-                    lambda: LOCAL_API.put_story_state(app_state, story_state),
                 ),
                 state_view={
                     "mc_score": get_mc_response("pro-dat4", stage_state),
@@ -395,7 +394,6 @@ def Page(app_state: Reactive[AppState]):
                     event,
                     story_state,
                     stage_state,
-                    lambda: LOCAL_API.put_story_state(app_state, story_state),
                 ),
                 state_view={
                     "mc_score": get_mc_response("pro-dat7", stage_state),
@@ -414,7 +412,6 @@ def Page(app_state: Reactive[AppState]):
                     event,
                     story_state,
                     stage_state,
-                    lambda: LOCAL_API.put_story_state(app_state, story_state),
                 ),
                 state_view={
                     "free_response_a": get_free_response(
