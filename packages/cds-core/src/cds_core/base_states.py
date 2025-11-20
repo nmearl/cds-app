@@ -16,7 +16,16 @@ from typing import (
     get_origin,
 )
 
-from pydantic import BaseModel, Field, SerializationInfo, SerializerFunctionWrapHandler, ValidationInfo, computed_field, field_serializer, field_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    SerializationInfo,
+    SerializerFunctionWrapHandler,
+    ValidationInfo,
+    computed_field,
+    field_serializer,
+    field_validator,
+)
 from solara import Reactive
 from solara.toestand import Ref
 
@@ -111,10 +120,7 @@ class BaseState(BaseModel):
 
     @field_serializer("*", mode="wrap")
     def serialize_enums(
-        self,
-        value: Any,
-        nxt: SerializerFunctionWrapHandler,
-        _info: SerializationInfo
+        self, value: Any, nxt: SerializerFunctionWrapHandler, _info: SerializationInfo
     ):
         if isinstance(value, BaseMarker):
             return value.value
@@ -129,15 +135,16 @@ class BaseState(BaseModel):
     ) -> BaseMarker:
         # TODO: Can this be simplified?
         if info.field_name:
-          annotation = cls.model_fields[info.field_name].annotation
-          if annotation:
-              origin = get_origin(annotation)
-              if origin not in (Union, UnionType) and \
-                 isclass(origin) and \
-                 issubclass(origin, BaseMarker):
-                     return annotation(value)
+            annotation = cls.model_fields[info.field_name].annotation
+            if annotation:
+                origin = get_origin(annotation)
+                if (
+                    origin not in (Union, UnionType)
+                    and isclass(origin)
+                    and issubclass(origin, BaseMarker)
+                ):
+                    return annotation(value)
         return value
-
 
     def as_dict(self):
         return self.model_dump()

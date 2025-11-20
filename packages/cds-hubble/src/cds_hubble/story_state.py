@@ -244,4 +244,9 @@ def fr_callback(
     if event[0] == "fr-update":
         logger.debug(f"Free Response update event received: {event[1]}")
         new_response = FreeResponse(**{**event[1], "stage": stage_state.value.stage_id})
-        Ref(stage_state.fields.free_responses[new_response.tag]).set(new_response)
+
+        # TODO: We do not use a Ref here, which means that Free Response
+        #  updates are not reactive. This is because the reactivity is added
+        #  directly in the ScaffoldAlert vue component. We may want to revisit
+        #  this later to make it more consistent.
+        stage_state.value.free_responses[new_response.tag] = new_response

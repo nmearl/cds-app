@@ -155,7 +155,7 @@ def Page(app_state: Reactive[AppState]):
 
         return gjapp, viewer
 
-    gjapp, viewer = solara.use_memo(_glue_setup)
+    gjapp, viewer = solara.use_memo(_glue_setup, dependencies=[])
 
     def _on_component_state_loaded():
         class_age = Ref(stage_state.fields.class_age)
@@ -289,7 +289,7 @@ def Page(app_state: Reactive[AppState]):
             ScaffoldAlert(
                 GUIDELINE_ROOT / "GuidelineProfessionalData0.vue",
                 event_back_callback=lambda _: push_to_route(
-                    router, location, "class-results-uncertainty"
+                    router, location, "class-results"
                 ),
                 event_next_callback=lambda _: transition_next(stage_state),
                 can_advance=stage_state.value.can_transition(next=True),
