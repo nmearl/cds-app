@@ -432,4 +432,4 @@ def distance_for_velocity(velocity: float) -> float:
 
 
 def angular_size_for_velocity(velocity: float) -> float:
-    return DISTANCE_CONSTANT / distance_for_velocity(velocity)
+    return round(DISTANCE_CONSTANT / distance_for_velocity(velocity), 0)
