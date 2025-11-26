@@ -65,6 +65,7 @@ def fill_and_add_wavelengths(api: LocalAPI, local_state: Reactive[StoryState], g
                                                 obs_wave_value=measurement.obs_wave_value,
                                                 galaxy=measurement.galaxy))
     Ref(local_state.fields.measurements).set(measurements)
+    api.ignore_student(global_state.value.student.id)
 
 
 def fill_and_add_velocities(api: LocalAPI, local_state: Reactive[StoryState], global_state: Reactive[AppState]):
@@ -80,6 +81,7 @@ def fill_and_add_velocities(api: LocalAPI, local_state: Reactive[StoryState], gl
                                                 galaxy=measurement.galaxy,
                                                 velocity_value=measurement.velocity_value))
     Ref(local_state.fields.measurements).set(measurements)
+    api.ignore_student(global_state.value.student.id)
 
 
 def fill_add_wave_vel_ang(api: LocalAPI, local_state: Reactive[StoryState], global_state: Reactive[AppState]):
@@ -97,6 +99,7 @@ def fill_add_wave_vel_ang(api: LocalAPI, local_state: Reactive[StoryState], glob
                                                 ang_size_value=measurement.ang_size_value,
                                                 galaxy=measurement.galaxy))
     Ref(local_state.fields.measurements).set(measurements)
+    api.ignore_student(global_state.value.student.id)
 
 
 def fill_add_angular_size_and_distance(api: LocalAPI, local_state: Reactive[StoryState], global_state: Reactive[AppState]):
@@ -112,6 +115,7 @@ def fill_add_angular_size_and_distance(api: LocalAPI, local_state: Reactive[Stor
                                                 galaxy=measurement.galaxy,
                                                 est_dist_value=measurement.est_dist_value))
     Ref(local_state.fields.measurements).set(measurements)
+    api.ignore_student(global_state.value.student.id)
 
 
 def fill_add_all_measurements(api: LocalAPI, local_state: Reactive[StoryState], global_state: Reactive[AppState]):
@@ -125,3 +129,4 @@ def fill_add_all_measurements(api: LocalAPI, local_state: Reactive[StoryState], 
     for measurement in dummy_measurements:
         measurement.student_id = global_state.value.student.id
     Ref(local_state.fields.measurements).set(dummy_measurements)
+    api.ignore_student(global_state.value.student.id)
