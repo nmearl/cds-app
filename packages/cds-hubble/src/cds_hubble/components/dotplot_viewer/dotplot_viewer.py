@@ -207,14 +207,15 @@ def DotplotViewer(
                     for viewer_data in data[1:]:
                         _add_data(dotplot_view, viewer_data)
 
-            dotplot_view.state.hist_n_bin = nbin
-            if is_valid_range(x_bounds.value):
-                set_viewer_x_range(dotplot_view, x_bounds.value[0], x_bounds.value[1])
 
             if nbin_func is not None:
                 dotplot_view.state.hist_n_bin = nbin_func(
                     dotplot_view.state.x_min, dotplot_view.state.x_max
                 )
+            else:
+                dotplot_view.state.hist_n_bin = nbin
+                if is_valid_range(x_bounds.value):
+                    set_viewer_x_range(dotplot_view, x_bounds.value[0], x_bounds.value[1])
 
             for layer in dotplot_view.layers:
                 for trace in layer.traces():
