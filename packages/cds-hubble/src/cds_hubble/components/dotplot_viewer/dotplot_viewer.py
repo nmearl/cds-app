@@ -433,7 +433,7 @@ def DotplotViewer(
 
             def reset_hist_n_bin(xmin=None, xmax=None):
                 set_viewer_x_range(dotplot_view, xmin, xmax)
-                if is_valid_range([xmin, xmax]):
+                if nbin_func is not None and is_valid_range([xmin, xmax]):
                     dotplot_view.state.hist_n_bin = nbin_func(xmin, xmax)
 
             def update_x_bounds(new_val):
