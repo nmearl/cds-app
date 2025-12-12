@@ -38,7 +38,6 @@ def initStudentID(student_id, roster):
 
 @solara.component
 def Dashboard(roster: Reactive[Roster] | Roster, student_names = None, add_names = False): 
-    logger.info(" ========= dashboard component =========")
     roster = solara.use_reactive(roster)
     are_names_set = solara.use_reactive(add_names)
     
@@ -63,7 +62,7 @@ def Dashboard(roster: Reactive[Roster] | Roster, student_names = None, add_names
     sub_tab_index = solara.use_reactive(0)
     def on_sid_set(value):
         if value is not None:
-            logger.info(f"Setting student_id to {value}")
+            logger.debug(f"Setting student_id to {value}")
             show_student_tab.set(1)
     student_id = solara.use_reactive(None, on_change=print_function_name(on_sid_set))
     

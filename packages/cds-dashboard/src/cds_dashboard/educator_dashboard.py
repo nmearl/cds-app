@@ -31,7 +31,7 @@ def EducatorDashboard(url_params = {}, class_list = []):
     class_id = solara.use_reactive(url_id)
     class_id_list = solara.use_reactive(class_list)
     
-    solara.Markdown("## Educator Dashboard")
+    # solara.Markdown("## Educator Dashboard")
     # show class id
     solara.Markdown(f"### Class ID: {class_id.value}")
     

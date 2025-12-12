@@ -189,7 +189,7 @@ class QueryCosmicDSApi():
             return self.l2d(measurements)
         else:
             missing_students = [student['student_id'] for student in roster if student['student_id'] not in [m['student_id'] for m in measurements]]
-            logger.info(f"Missing data for students: {missing_students}")
+            logger.debug(f"Missing data for students: {missing_students}")
             new_measurements = []
             for student_id in missing_students:
                 new_measurements +=  self.get_student_data(student_id)['measurements']

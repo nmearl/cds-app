@@ -303,7 +303,7 @@ class Roster():
             return self._fr_questions
 
         if len(self.roster) > 0:
-            logger.debug(self._story_state['responses'])
+            # logger.debug(self._story_state['responses'])
             out = l2d(self._story_state['responses'])
             out.update({'student_id': self.student_ids})
             self._fr_questions = out
