@@ -27,7 +27,7 @@
     --secondary: var(--secondary-dark);
     --accent: var(--accent-dark);
     --error: var(--error-dark);
-    --info: var(var(--info-dark));
+    --info: var(--info-dark);
     --success: var(--success-dark);
     --warning: var(--warning-dark);
 }
@@ -100,7 +100,7 @@ body:has(.v-application.theme--light), .v-sheet.theme--light {
 
 
 #slideshow-root .row {
-    align-items: top;
+    align-items: flex-start;
     margin-top: 10px;
     margin-left: 5px;
 }
@@ -259,12 +259,11 @@ footer.v-footer {
     color: #F5f5f5 !important; 
     padding-block: 0;
 }
-/* 
 /* Don't remember where this goes - could be deleted? */
 .v-card__text .v-container {
     font-size: 18px !important;
     line-height: 1.5 !important;
-} */
+}
 
 .v-radio label.theme--dark {
     color: white !important;
