@@ -33,7 +33,7 @@ class State(StateInterface):
         possible_score = 0
         if str(stage) not in self.mc_scoring:
             return score, possible_score
-        
+
         for key, value in self.mc_scoring[str(stage)].items():
             if value is None:
                 score += 0
@@ -183,6 +183,17 @@ class MonoRepoState(State):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
     
+    @property
+    def story_score(self) -> int:
+        # For MonoRepoState, mc_scoring keys are numeric indices (e.g., '0', '1'),
+        # not stage names, so we need to use stage indices for lookup
+        total = 0
+        for stage_name in self.stages.keys():
+            stage_index = self.stages[stage_name].get('index', None)
+            if stage_index is not None:
+                score, _ = self.get_stage_score(stage_index)
+                total += score
+        return total
 
     @property
     def max_stage_index(self) -> int:
