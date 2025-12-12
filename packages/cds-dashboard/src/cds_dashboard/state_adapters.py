@@ -202,7 +202,7 @@ class MonorepoStateAdapter(StateAdapter):
     def fix_progress(self, stage: Dict):
         max_step = stage['max_step']
         total_steps = stage['total_steps']
-        progress = (max_step - 1) / total_steps
+        progress = max(0,(max_step - 1)) / (total_steps - 1)
         stage['progress'] = progress
         return progress
     
