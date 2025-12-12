@@ -345,7 +345,7 @@ requires-dist = [
     { name = "echo", specifier = ">=0.9.0" },
     { name = "glue-core", specifier = ">=1.22.0" },
     { name = "glue-jupyter", specifier = ">=0.23.1" },
-    { name = "glue-plotly", extras = ["jupyter"], specifier = ">=0.13.0" },
+    { name = "glue-plotly", extras = ["jupyter"], specifier = "==0.12.3" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.2.4" },
 ]
@@ -396,7 +396,7 @@ requires-dist = [
     { name = "deepdiff", specifier = ">=8.5.0" },
     { name = "glue-core", specifier = ">=1.22.0" },
     { name = "glue-jupyter", specifier = ">=0.23.1" },
-    { name = "glue-plotly", extras = ["jupyter"], specifier = ">=0.13.0" },
+    { name = "glue-plotly", extras = ["jupyter"], specifier = "==0.12.3" },
     { name = "ipywidgets", specifier = ">=8.1.5" },
     { name = "ipywwt", git = "https://github.com/cosmicds/ipywwt.git?rev=simple" },
     { name = "itsdangerous", specifier = ">=2.2.0" },
@@ -534,6 +534,21 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/4b/51/8ade005e5ca5b0d80fb4aff72a3775b325bdc3d27408c8113811a7cbe640/charset_normalizer-3.4.4-cp314-cp314-win_amd64.whl", hash = "sha256:8a6562c3700cce886c5be75ade4a5db4214fda19fede41d9792d100288d8f94c", size = 107104, upload-time = "2025-10-14T04:41:51.051Z" },
     { url = "https://files.pythonhosted.org/packages/da/5f/6b8f83a55bb8278772c5ae54a577f3099025f9ade59d0136ac24a0df4bde/charset_normalizer-3.4.4-cp314-cp314-win_arm64.whl", hash = "sha256:de00632ca48df9daf77a2c65a484531649261ec9f25489917f09e455cb09ddb2", size = 100743, upload-time = "2025-10-14T04:41:52.122Z" },
     { url = "https://files.pythonhosted.org/packages/0a/4c/925909008ed5a988ccbb72dcc897407e5d6d3bd72410d69e051fc0c14647/charset_normalizer-3.4.4-py3-none-any.whl", hash = "sha256:7a32c560861a02ff789ad905a2fe94e3f840803362c84fecf1851cb4cf3dc37f", size = 53402, upload-time = "2025-10-14T04:42:31.76Z" },
+]
+
+[[package]]
+name = "chart-studio"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "plotly" },
+    { name = "requests" },
+    { name = "retrying" },
+    { name = "six" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d3/06/cfe81ee02b37eeacb3c74efd2a3280d68d97835c6d55419f89d5a3f63934/chart-studio-1.1.0.tar.gz", hash = "sha256:a17283b62470306d77060b200f13f9749c807dd15613c113d36f8d057f5c7019", size = 51680, upload-time = "2020-04-01T14:40:10.876Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ca/ce/330794a6b6ca4b9182c38fc69dd2a9cbff60fd49421cb8648ee5fee352dc/chart_studio-1.1.0-py3-none-any.whl", hash = "sha256:fd183185d6e6d31c642567145c1a862f941ca9c7695aac8b2f3ebbcbcea31a7a", size = 64415, upload-time = "2020-04-01T14:40:09.312Z" },
 ]
 
 [[package]]
@@ -1006,15 +1021,16 @@ wheels = [
 
 [[package]]
 name = "glue-plotly"
-version = "0.13.0"
+version = "0.12.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "chart-studio" },
     { name = "glue-core" },
     { name = "plotly" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/99/c6/e3ef9836e324f00b84392ca9bb826c88e00e0015f0b4339e87eaaed292d7/glue_plotly-0.13.0.tar.gz", hash = "sha256:7b092533ba5a0edcbb24c500cb4a54ad8a006d4b324688c1571ea98ad61a5edf", size = 16986454, upload-time = "2025-11-24T06:30:48.843Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b3/86/79952269e17b5bdbd27f9066e93c2bb3a9ce185c6f4f4d2bd8b4df93c44a/glue_plotly-0.12.3.tar.gz", hash = "sha256:ca731b775886e5ee288586aec0efc6210b0b6d11ff257efb1a68a269cf2b86b4", size = 16988192, upload-time = "2025-04-09T06:33:56.351Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d6/fc/42b834a83b8acc226ef92885dbc8c43a27718de80be4f8a38fc0249ec132/glue_plotly-0.13.0-py3-none-any.whl", hash = "sha256:3dd8616dc1149e531338955533f229d20e4dc008936e23b0f6a36cb60e8491bd", size = 108955, upload-time = "2025-11-24T06:30:47.307Z" },
+    { url = "https://files.pythonhosted.org/packages/53/b5/86146850e4d4ec41d468aa57777c8833dd4cbb70dd7850af424d89c07154/glue_plotly-0.12.3-py3-none-any.whl", hash = "sha256:ee7e7b6c86f1c11ff5798517517fef5a81db58a111d03621c509f93affd29a07", size = 116653, upload-time = "2025-04-09T06:33:54.951Z" },
 ]
 
 [package.optional-dependencies]
@@ -2847,6 +2863,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c9/74/b3ff8e6c8446842c3f5c837e9c3dfcfe2018ea6ecef224c710c85ef728f4/requests-2.32.5.tar.gz", hash = "sha256:dbba0bac56e100853db0ea71b82b4dfd5fe2bf6d3754a8893c3af500cec7d7cf", size = 134517, upload-time = "2025-08-18T20:46:02.573Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1e/db/4254e3eabe8020b458f1a747140d32277ec7a271daf1d235b70dc0b4e6e3/requests-2.32.5-py3-none-any.whl", hash = "sha256:2462f94637a34fd532264295e186976db0f5d453d1cdd31473c85a6a161affb6", size = 64738, upload-time = "2025-08-18T20:46:00.542Z" },
+]
+
+[[package]]
+name = "retrying"
+version = "1.4.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c8/5a/b17e1e257d3e6f2e7758930e1256832c9ddd576f8631781e6a072914befa/retrying-1.4.2.tar.gz", hash = "sha256:d102e75d53d8d30b88562d45361d6c6c934da06fab31bd81c0420acb97a8ba39", size = 11411, upload-time = "2025-08-03T03:35:25.189Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/67/f3/6cd296376653270ac1b423bb30bd70942d9916b6978c6f40472d6ac038e7/retrying-1.4.2-py3-none-any.whl", hash = "sha256:bbc004aeb542a74f3569aeddf42a2516efefcdaff90df0eb38fbfbf19f179f59", size = 10859, upload-time = "2025-08-03T03:35:23.829Z" },
 ]
 
 [[package]]
