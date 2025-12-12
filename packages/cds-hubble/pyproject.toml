@@ -15,7 +15,7 @@ dependencies = [
     "deepdiff>=8.5.0",
     "glue-core>=1.22.0",
     "glue-jupyter>=0.23.1",
-    "glue-plotly[jupyter]>=0.12.2",
+    "glue-plotly[jupyter]>=0.13.0",
     "ipywidgets>=8.1.5",
     "ipywwt",
     "itsdangerous>=2.2.0",
