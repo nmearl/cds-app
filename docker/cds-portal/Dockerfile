@@ -15,8 +15,8 @@ COPY pyproject.toml uv.lock README.md ./
 COPY src ./src
 COPY packages ./packages
 
-RUN uv pip install packages/cds-core --system
-RUN uv pip install packages/cds-portal --system
+RUN uv sync --package cds-core --system
+RUN uv sync --package cds-hubble --system
 
 EXPOSE 8865
 
