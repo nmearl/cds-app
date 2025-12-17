@@ -1,16 +1,19 @@
-import solara
-from solara import Reactive
-from solara.toestand import Ref
-import reacton.ipyvuetify as rv
-
-from ..remote import BaseAPI
-
-from .refresh_button import RefreshButton
-from ..base_states import BaseStoryState, BaseState, BaseAppState
-
 from enum import Enum
 from functools import partial
 from typing import Type, TypeVar
+
+import reacton.ipyvuetify as rv
+import solara
+from solara import Reactive
+from solara.toestand import Ref
+
+from cds_core.logger import setup_logger
+from cds_core.components.stress_test_manager import StressTester
+from .refresh_button import RefreshButton
+from ..base_states import BaseStoryState, BaseState, BaseAppState
+from ..remote import BaseAPI
+
+logger = setup_logger("DEBUG CONTROL")
 
 
 BS = TypeVar("BS", bound=BaseState, covariant=True)
@@ -100,6 +103,7 @@ def StateEditor(
     api: BaseAPI,
     show_all: bool = True,
 ):
+    show_stress_menu = solara.use_reactive(False)
     show_dialog, set_show_dialog = solara.use_state(False)
     with solara.Card(
         style="border-radius: 5px; border: 2px solid #EC407A; max-width: 400px"
@@ -148,3 +152,14 @@ def StateEditor(
                     ),
                     button_text="Reset Stage State",
                 )
+
+        with solara.Row():
+            solara.Checkbox(
+                label="Show System Stress Tester",
+                value=show_stress_menu,
+            )
+
+        if show_stress_menu.value:
+            with solara.Row():
+                StressTester()
+

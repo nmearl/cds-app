@@ -20,4 +20,4 @@ RUN uv sync --package cds-core --package cds-hubble --locked --no-dev
 
 EXPOSE 8765
 
-CMD ["uvicorn", "cds_hubble.server:app", "--host=0.0.0.0", "--port=8765", "--workers=2"]
+CMD ["uvicorn", "cds_hubble.server:app", "--host=0.0.0.0", "--port=8765"]
