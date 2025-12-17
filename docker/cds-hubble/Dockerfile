@@ -15,8 +15,9 @@ COPY pyproject.toml uv.lock README.md ./
 COPY src ./src
 COPY packages ./packages
 
-RUN uv sync --package cds-core --system
-RUN uv sync --package cds-hubble --system
+ENV UV_PROJECT_ENVIRONMENT="/usr/local/"
+RUN uv sync --package cds-core --locked --no-dev
+RUN uv sync --package cds-hubble --locked --no-dev
 
 EXPOSE 8765
 
