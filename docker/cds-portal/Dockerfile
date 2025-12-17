@@ -16,8 +16,7 @@ COPY src ./src
 COPY packages ./packages
 
 ENV UV_PROJECT_ENVIRONMENT="/usr/local/"
-RUN uv sync --package cds-core --locked --no-dev
-RUN uv sync --package cds-portal --locked --no-dev
+RUN uv sync --package cds-core --package cds-portal --locked --no-dev
 
 EXPOSE 8865
 
