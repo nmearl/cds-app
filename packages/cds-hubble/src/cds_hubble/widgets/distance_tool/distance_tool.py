@@ -135,7 +135,7 @@ class DistanceTool(v.VueTemplate):
         fov = self.widget.get_fov()
         widget_height = self._height_from_pixel_str(self.widget.layout.height)
         ang_size = Angle(((change["new"] / widget_height) * fov))
-        valid = self.validate_angular_size(ang_size, True)
+        # valid = self.validate_angular_size(ang_size, True)
         # print(ang_size, change["new"], valid)
         # if valid:
         #     print('valid measurement')
