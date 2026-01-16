@@ -110,6 +110,7 @@
                       class="mb-4 mx-a mt-n3 image-fit"
                       alt="A black and white image of the Andromeda galaxy's light spectrum"
                       src="https://raw.githubusercontent.com/cosmicds/cds-website/main/public/hubbleds_images/stage_one_spectrum/vesto_slipher.png"
+                      :eager="eager_load_images"
                     ></v-img>
                     <div>
                       <cite class="text-center mt-2 grey--text">
@@ -347,6 +348,7 @@
                     contain
                     height="128"
                     src="https://www.pngrepo.com/png/211744/512/rocket-ship-launch-missile.png"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h3 class="text-h6 font-weight-light mb-2">
                     Nice work reflecting!

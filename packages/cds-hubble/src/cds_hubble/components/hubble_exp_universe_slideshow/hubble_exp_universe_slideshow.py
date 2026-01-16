@@ -27,5 +27,6 @@ def HubbleExpUniverseSlideshow(
     event_mc_callback: Callable | None = None,
     event_on_slideshow_finished: Callable | None = None,
     show_team_interface: bool = False,
+    eager_load_images: bool = True,
 ):
     pass

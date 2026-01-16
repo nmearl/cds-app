@@ -84,6 +84,7 @@
                       class="mb-4 mx-a mt-n3 image-fit"
                       alt="Cartoon image of the Universe and a birthday cake with a question mark candle."
                       :src="`${image_location}/universecake.png`"
+                      :eager="eager_load_images"
                     ></v-img>
                     <div>
                       <cite class="text-center mt-2 grey--text">
@@ -273,6 +274,7 @@
                       class="mb-4 mx-a mt-n3 image-fit"
                       alt="Two measuring tapes are side by side. One lies straight. The other is curled up and wrinkled."
                       :src="`${image_location}/rulers.png`"
+                      :eager="eager_load_images"
                     ></v-img>
                     <div>
                       <cite class="text-center mt-2 grey--text">
@@ -342,6 +344,7 @@
                     contain
                     height="128"
                     src="https://www.pngrepo.com/png/211744/512/rocket-ship-launch-missile.png"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h3 class="text-h6 font-weight-light mb-2">
                     You're ready to continue exploring the data now.

@@ -74,6 +74,7 @@
                 <v-img
                   :lazy-src="`${image_location}/MilkyWayOverMountainsNASASTScILevay.jpg`"
                   :src="`${image_location}/MilkyWayOverMountainsNASASTScILevay.jpg`"
+                  :eager="eager_load_images"
                   alt="Colorful image of our Milky Way galaxy in the sky over a dark silhouette of mountains on the horizon."
                   max-height = "550px"
                   contain
@@ -116,6 +117,7 @@
                       position="center center"
                       :lazy-src="`${image_location}/HST-SM4.jpeg`"
                       :src="`${image_location}/HST-SM4.jpeg`"  
+                      :eager="eager_load_images"
                       alt="The Hubble Space Telescope against a dark background"
                       max-height = "250"
                       contain
@@ -125,6 +127,7 @@
                     <v-img
                       :lazy-src="`${image_location}/EdwinHubble.jpg`"
                       :src="`${image_location}/EdwinHubble.jpg`"
+                      :eager="eager_load_images"
                       alt="Astronomer Edwin Hubble holding an image of the Andromeda Galaxy"
                       max-height = "250"
                       contain
@@ -160,6 +163,7 @@
                     <v-img
                       :lazy-src="`${image_location}/Astronomer_Edward_Charles_Pickering's_Harvard_computers.jpg`"
                       :src="`${image_location}/Astronomer_Edward_Charles_Pickering's_Harvard_computers.jpg`"
+                      :eager="eager_load_images"
                       alt="Eight women astronomers, wearing late 1800s clothing and hairstyles, are sitting or standing in a room. Some are observing astronomical images with magnifying glasses. Some are writing in notebooks."
                       max-height="300"
                       contain
@@ -179,6 +183,7 @@
                       position="center right"
                       :lazy-src="`${image_location}/Einstein_1921_by_F_Schmutzer_-_restorationCropped.png`"
                       :src="`${image_location}/Einstein_1921_by_F_Schmutzer_-_restorationCropped.png`"
+                      :eager="eager_load_images"
                       alt="Portrait of Albert Einstein"
                       contain
                       max-height="150"
@@ -189,6 +194,7 @@
                       position="center left"
                       :lazy-src="`${image_location}/AristotleSchoolOfAthensCutoutZoom.png`"
                       :src="`${image_location}/AristotleSchoolOfAthensCutoutZoom.png`"
+                      :eager="eager_load_images"
                       alt="Cutout showing a small portion of a much larger, colorful paiting by Raphael depicting Aristotle wearing a blue robe."
                       contain
                       max-height="150"
@@ -726,9 +732,10 @@
                   <v-img
                     :lazy-src="`${image_location}/Leavitt_at_work.jpg`"
                     :src="`${image_location}/Leavitt_at_work.jpg`"
-                      alt="Photograph of Henrietta Leavitt writing in a notebook. Several other notes are open neatly around her desk. "
-                      max-height = "350"
-                      contain
+                    :eager="eager_load_images"
+                    alt="Photograph of Henrietta Leavitt writing in a notebook. Several other notes are open neatly around her desk. "
+                    max-height = "350"
+                    contain
                     ></v-img>
                   <div
                     class="text-center mt-3 grey--text"
@@ -743,6 +750,7 @@
                   <v-img
                     :lazy-src="`${image_location}/Leavitt_Plate.png`"
                     :src="`${image_location}/Leavitt_Plate.png`"
+                    :eager="eager_load_images"
                     alt="Photographic glass plate of the Small Magellenic Cloud. Handwritten markings are scattered around the plate, noting objects of interest."
                     max-height = "200"
                     contain
@@ -758,6 +766,7 @@
                   <v-img
                     :lazy-src="`${image_location}/HSLeavittHSCr13Fig2_1912.jpeg`"
                     :src="`${image_location}/HSLeavittHSCr13Fig2_1912.jpeg`"
+                    :eager="eager_load_images"
                     alt="A graph depicting stellar magnitude on the y-axis and period in days on the x-axis. Two plots are shown that go from the bottom left to the upper right of the chart."
                     max-height = "200"
                     contain
@@ -797,6 +806,7 @@
                 <v-img
                   :lazy-src="`${image_location}/V.M.Slipher.gif`"
                   :src="`${image_location}/V.M.Slipher.gif`"
+                  :eager="eager_load_images"
                   alt="Portrait of Vesto Slipher"
                   max-height = "400"
                   contain

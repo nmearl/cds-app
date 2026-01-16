@@ -92,6 +92,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/IL-Do.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4> DO: </h4> 
                   <p>
@@ -103,6 +104,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/IL-Dont.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4>DON'T : </h4> 
                   <p>
@@ -133,6 +135,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/adjust_brightnes_do.png`" 
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4>DO:</h4> 
                   <p>
@@ -144,6 +147,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/adjust_brigness_dont.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4>DON’T: </h4> 
                   <p>
@@ -174,6 +178,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/LS-Do.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4>DO:</h4> 
                   <p>
@@ -185,6 +190,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/LS-Dont.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4>DON’T: </h4> 
                   <p>
@@ -220,6 +226,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/EH-Do.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4>DO: </h4> 
                   <p>
@@ -231,6 +238,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/EH-Dont.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4>DON’T: </h4> 
                   <p>
@@ -267,6 +275,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/IF-Maybe2.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4>OK: </h4> 
                   <p>
@@ -278,6 +287,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/IF-Maybe1.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4>OK: </h4>  
                   <p>
@@ -309,6 +319,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/BS-Do.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4>DO: </h4>  
                   <p>
@@ -320,6 +331,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/BS-Dont.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4>DON'T: </h4> 
                   <p>
@@ -357,6 +369,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/Multi-Do.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4>DO: </h4> 
                   <p>
@@ -368,6 +381,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/Multi-DONT1.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4>DON'T: </h4> 
                   <p>
@@ -379,6 +393,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/Multi-DONT2.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4>DON'T: </h4> 
                   <p>
@@ -410,6 +425,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/TC-Do.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4>DO: </h4>  
                   <p>
@@ -421,6 +437,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/TC-Dont.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4>DON’T: </h4> 
                   <p>
@@ -451,6 +468,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/Col-Do.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4>DO: </h4>  
                   <p>
@@ -462,6 +480,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/Col-Dont.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4>DON’T: </h4> 
                   <p>
@@ -499,6 +518,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/Cluster-Do.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4>DO: </h4> 
                   <p>
@@ -510,6 +530,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/Cluster-DONT1.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4>DON'T: </h4> 
                   <p>
@@ -521,6 +542,7 @@
                     class="mb-4 mx-a"
                     contain
                     :src="`${image_location}/Cluster-DONT2.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h4>DON'T: </h4> 
                   <p>

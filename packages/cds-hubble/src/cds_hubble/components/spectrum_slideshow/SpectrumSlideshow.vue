@@ -105,6 +105,7 @@
                     class="mb-4 mx-a mt-n3"
                     contain
                     :src="`${image_location}/refraction_diffraction_spectra.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                 </v-col>
               </v-row>
@@ -152,12 +153,14 @@
                       class="mb-4 mx-a"
                       contain
                       :src="`${image_location}/LED_White_spectool.png`"
+                      :eager="eager_load_images"
                     ></v-img>
                     <h4>Light spectrum for sodium vapor bulb</h4>
                     <v-img
                       class="mx-a"
                       contain
                       :src="`${image_location}/Sodium_Vapor_spectool.png`"
+                      :eager="eager_load_images"
                     ></v-img>
                   </v-card>
                 </v-col>
@@ -202,12 +205,14 @@
                       class="mb-4 mx-a"
                       contain
                       :src="`${image_location}/LED_White_w_highlight_spectool.png`"
+                      :eager="eager_load_images"
                     ></v-img>
                     <h4>Light spectrum for sodium vapor bulb</h4>
                     <v-img
                       class="mx-a"
                       contain
                       :src="`${image_location}/Sodium_Vapor_w_highlight_spectool.png`"
+                      :eager="eager_load_images"
                     ></v-img>
                   </v-card>
                 </v-col>
@@ -252,12 +257,14 @@
                       class="mb-4 mx-a"
                       contain
                       :src="`${image_location}/LED_White_w_neghighlight_spectool.png`"
+                      :eager="eager_load_images"
                     ></v-img>
                     <h4>Light spectrum for sodium vapor bulb</h4>
                     <v-img
                       class="mx-a"
                       contain
                       :src="`${image_location}/Sodium_Vapor_w_neghighlight_spectool.png`"
+                      :eager="eager_load_images"
                     ></v-img>
                   </v-card>
                 </v-col>
@@ -304,6 +311,7 @@
                       class="mx-a"
                       contain
                       :src="`${image_location}/siren_moving_white.png`"
+                      :eager="eager_load_images"
                     ></v-img>
                   </v-card>
                 </v-col>
@@ -350,6 +358,7 @@
                       class="mx-a"
                       contain
                       :src="`${image_location}/doppler_shift_light_white.png`"
+                      :eager="eager_load_images"
                     ></v-img>
                   </v-card>
                 </v-col>
@@ -402,11 +411,13 @@
                           class="mx-a"
                           contain
                           :src="`${image_location}/carbon_atom_model.png`"
+                          :eager="eager_load_images"
                         ></v-img>
                         <v-img
                           class="mt-auto mx-a"
                           contain
                           :src="`${image_location}/nitrogen_atom_model.png`"
+                          :eager="eager_load_images"
                         ></v-img>
                       </v-col>
                       <v-col cols="8">
@@ -414,6 +425,7 @@
                           class="mx-a"
                           contain
                           :src="`${image_location}/stsci_spectrum_element_montage.jpg`"
+                          :eager="eager_load_images"
                         ></v-img>
                       </v-col>
                       <v-col cols="2" class="d-flex flex-column" height="100%">
@@ -423,6 +435,7 @@
                               class="mx-a"
                               contain
                               :src="`${image_location}/oxygen_atom_model.png`"
+                              :eager="eager_load_images"
                             ></v-img>
                           </v-col>
                         </v-row>
@@ -432,6 +445,7 @@
                               class="mt-auto mx-a"
                               contain
                               :src="`${image_location}/iron_atom_model.png`"
+                              :eager="eager_load_images"
                             ></v-img>
                           </v-col>
                         </v-row>
@@ -494,12 +508,14 @@
                       class="mb-4 mx-a"
                       contain
                       :src="`${image_location}/hydrogen_emission_spectool.png`"
+                      :eager="eager_load_images"
                     ></v-img>
                     <h4>Hydrogen absorption spectrum</h4>
                     <v-img
                       class="mx-a"
                       contain
                       :src="`${image_location}/hydrogen_absorption_spectool.png`"
+                      :eager="eager_load_images"
                     ></v-img>
                   </v-card>
                 </v-col>
@@ -550,6 +566,7 @@
                     <v-img
                       contain
                       :src="`${image_location}/restobs1_dotted.png`"
+                      :eager="eager_load_images"
                     >
                     </v-img>
                   </v-card>
@@ -601,6 +618,7 @@
                     <v-img
                       contain
                       :src="`${image_location}/restobs2_dotted.png`"
+                      :eager="eager_load_images"
                     >
                     </v-img>
                   </v-card>
@@ -632,6 +650,7 @@
                     contain
                     height="128"
                     src="https://www.pngrepo.com/png/211744/512/rocket-ship-launch-missile.png"
+                    :eager="eager_load_images"
                   ></v-img>
                   <h3 class="text-h6 font-weight-light mb-2">
                     You're ready to start measuring galaxy velocities now.

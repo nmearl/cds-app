@@ -126,6 +126,7 @@
                   class="mb-4 mx-a"
                   contain
                   :src="`${image_location}/PeopleLargeSmallAngularSize.png`"
+                  :eager="eager_load_images"
                 ></v-img>
               </v-col>
             </v-row>
@@ -166,6 +167,7 @@
                   class="mb-4 mx-a"
                   contain
                   :src="`${image_location}/PeopleLargeSmallAngularSize.png`"
+                  :eager="eager_load_images"
                 ></v-img>
               </v-col>
               <v-col
@@ -180,6 +182,7 @@
                   class="mb-4 mx-a"
                   contain
                   :src="`${image_location}/esahubble_potw2031a_1600_cleaned.png`"
+                  :eager="eager_load_images"
                 ></v-img>
               </v-col>
             </v-row>
@@ -223,6 +226,7 @@
                   class="mb-4 mx-a"
                   contain
                   :src="`${image_location}/PeopleLargeSmallAngularSize labeled.png`"
+                  :eager="eager_load_images"
                 ></v-img>
               </v-col>
               <v-col cols="6">
@@ -233,6 +237,7 @@
                   class="mb-4 mx-a"
                   contain
                   :src="`${image_location}/esahubble_potw2031a_1600_cleaned.png`"
+                  :eager="eager_load_images"
                 ></v-img>
               </v-col> 
             </v-row> 
@@ -305,6 +310,7 @@
                 contain
                 max-height="300"
                 :src="`${image_location}/erinmoon.png`"
+                :eager="eager_load_images"
               ></v-img>
             </v-row>
           </v-container>
@@ -360,6 +366,7 @@
                   max-height="300"
                   aspect-ratio="2.6288"
                   :src="`${image_location}/cosmicgraphic.png`"
+                  :eager="eager_load_images"
                 ></v-img>
               </v-col>
             </v-row>
@@ -451,6 +458,7 @@
                     class="mx-a"
                     contain
                     :src="`${image_location}/galaxies_a_b_boxed.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                 </v-col>
             </v-row> 
@@ -583,6 +591,7 @@
                     class="mx-a"
                     contain
                     :src="`${image_location}/galaxies_a_b_boxed.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                 </div>
               </v-col>

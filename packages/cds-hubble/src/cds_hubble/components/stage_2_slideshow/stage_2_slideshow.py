@@ -21,5 +21,6 @@ def Stage2Slideshow (
     event_return_to_stage1,
     event_slideshow_finished,
     speech,
+    eager_load_images=True,
 ):
     pass
