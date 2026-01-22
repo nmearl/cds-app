@@ -251,7 +251,7 @@ export default {
       this.canvas.onmousedown = this.addInitialPoint;
       this.canvas.onmouseup = null;
 
-      // Clear the canvas, if ncessary
+      // Clear the canvas, if necessary
       this.clearCanvas();
     },
 
