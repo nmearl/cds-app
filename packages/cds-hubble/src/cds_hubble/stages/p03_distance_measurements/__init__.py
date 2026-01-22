@@ -141,7 +141,6 @@ def DistanceToolComponent(
         widget = cast(DistanceTool, solara.get_widget(tool))
 
         def update_angular_size(change):
-            print(f"update_angular_size: {change['new']}")
             if widget.measuring:
                 angle = change["new"]
                 if not widget.bad_measurement:
@@ -379,7 +378,7 @@ def Page(app_state: Reactive[AppState]):
         else:
             index = story_state.value.get_measurement_index(galaxy["id"])
             if index is not None:
-                measurements = story_state.value.measurements
+                measurements = list(story_state.value.measurements)
                 measurement = story_state.value.measurements[index]
                 measurement = measurement.model_copy(
                     update={"ang_size_value": arcsec_value, "brightness": brightness}
@@ -789,6 +788,7 @@ def Page(app_state: Reactive[AppState]):
                 can_advance=stage_state.value.can_transition(next=True),
                 show=stage_state.value.is_current_step(Marker.fil_rem1),
                 state_view={"distances_total": stage_state.value.distances_total},
+                scroll_on_mount=False,
             )
 
         with rv.Col():

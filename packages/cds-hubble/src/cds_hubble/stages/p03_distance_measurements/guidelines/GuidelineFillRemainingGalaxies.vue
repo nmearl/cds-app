@@ -5,7 +5,7 @@
     @back="back_callback()"
     @next="next_callback()"
     :can-advance="can_advance"
-
+    :scroll-on-mount="scroll_on_mount"
   >
     <template #before-next>
       Click <v-btn icon tile dark x-small disabled class="mx-1" elevation="2" style="background-color: #0277BD; border-radius: 5px;"><v-icon style="color:white!important;">mdi-tape-measure</v-icon></v-btn> in toolbar
