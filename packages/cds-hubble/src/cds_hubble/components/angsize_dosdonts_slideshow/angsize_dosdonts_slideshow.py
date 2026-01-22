@@ -15,5 +15,6 @@ def AngsizeDosDontsSlideshow(
     image_location=f"{IMAGE_BASE_URL}/stage_two_dos_donts",
     event_on_dialog_opened=None,
     show_team_interface=False,
+    eager_load_images=True,
 ):
     pass

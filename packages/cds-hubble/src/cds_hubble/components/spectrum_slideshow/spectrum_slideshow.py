@@ -14,5 +14,6 @@ def SpectrumSlideshow(
     image_location: str = f"{IMAGE_BASE_URL}/stage_one_spectrum",
     event_dialog_opened_callback: Callable = None,
     show_team_interface: bool = False,
+    eager_load_images: bool = True,
 ):
     pass

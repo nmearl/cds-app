@@ -24,5 +24,8 @@ def ReflectVelocitySlideshow(
     event_set_step,
     event_set_max_step_completed,
     event_on_reflection_complete,
+
+    # Rendering settings
+    eager_load_images=True,
 ):
     pass

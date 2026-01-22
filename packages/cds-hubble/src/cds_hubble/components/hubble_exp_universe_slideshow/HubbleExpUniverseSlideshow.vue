@@ -122,6 +122,7 @@
                     class="mb-4 mx-a mt-n3"
                     contain
                     :src="`${image_location}/runners_km.png`"
+                    :eager="eager_load_images"
                   ></v-img>
                 </v-col>
               </v-row>

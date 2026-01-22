@@ -19,5 +19,6 @@ def IntroSlideshowVue(
     event_go_to_location,
     speech,
     show_team_interface,
+    eager_load_images=True,
 ):
     pass
