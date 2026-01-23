@@ -1383,7 +1383,7 @@ wheels = [
 [[package]]
 name = "ipywwt"
 version = "0.0.0"
-source = { git = "https://github.com/cosmicds/ipywwt.git?rev=simple#d846eda38632584483ca1c4bec73b7f0ec41b52c" }
+source = { git = "https://github.com/cosmicds/ipywwt.git?rev=simple#cd84819e89ce05d67a1e38f83c9642ddd111f207" }
 dependencies = [
     { name = "anywidget" },
     { name = "astropy" },
