@@ -47,9 +47,24 @@ def StudentDataLoadInterface(name_dataframe = None, on_load = None, table_set = 
         with solara.Div():
             SetColumns(table, on_set = on_name_dataframe_set)
         CSVFileInfoToTable(file_info, on_table = table.set)
+@solara.component
+def FakeStudentDataLoadInterface(name_dataframe = None, on_load = None, student_names_set = None, id_list = []):
+    """
+    convenience component to generate a new valid set of names for testing
+    """
+    name_dataframe = solara.use_reactive(name_dataframe)
+    
+    def gen_fake_data():
+        names = [f'Fake name {i}' for i in id_list]
+        df = pd.DataFrame({'student_id': id_list, 'name': names})
+        name_dataframe.set(df)
+    
+    solara.Button(label="Generate Fake Student Names", icon_name='mdi-account-multiple-plus', on_click=gen_fake_data, classes=["my-buttons","student-name-button"])
+        
+    
 
 @solara.component
-def StudentLoadDialog(student_names = None, student_names_set = None, dialog_open = False, no_dialog = False, validator = lambda x: (True, [])):
+def StudentLoadDialog(student_names = None, student_names_set = None, dialog_open = False, no_dialog = False, validator = lambda x: (True, []), id_list = []):
     
     student_names = solara.use_reactive(student_names)
     
@@ -96,6 +111,7 @@ def StudentLoadDialog(student_names = None, student_names_set = None, dialog_ope
                 
             with solara.CardActions():
                 solara.Button(icon_name="mdi-close-circle",label = "Close", on_click = lambda: dialog_open.set(False), text=True, outlined=True, classes=["dash-dialog-button"])
+                FakeStudentDataLoadInterface(internal_student_names, student_names_set = student_names_set, id_list = id_list)
 
 
 def validate_table(table, required_sids):
@@ -120,6 +136,25 @@ def validate_table(table, required_sids):
         logger.debug(f"missing ids {missing}")
         return present, missing
 
+def set_names_on_roster(
+    roster: Union[solara.Reactive[Roster], Roster] = None, 
+    student_names = None, 
+    student_names_set = None, 
+    on_update = lambda x: None
+    ):
+    logger.debug(f"Checking: student_names has a value {student_names.value is not None} {type(student_names.value)}, student_names_set is {student_names_set.value}")
+    r = copy.copy(roster.value)
+    if (student_names.value is not None) and (not student_names_set.value):
+        logger.debug("successfully loaded student names, updating roster")
+        student_names_dict = {row['student_id']: row['name'] for _, row in student_names.value.iterrows()}
+        r.set_student_names(student_names_dict)
+        # r.short_report(refresh = True)
+        roster.set(r)
+        student_names_set.set(True)
+        on_update(student_names.value)
+    else:
+        logger.debug(f"not updating student names: Reason: student_names has a value {student_names.value is not None} {type(student_names.value)}, student_names_set is {student_names_set.value}")
+
 @solara.component
 def StudentNameLoad(roster: Union[solara.Reactive[Roster], Roster], student_names = None, names_set = None, on_update = lambda x: None, use_dialog = True):
     logger.debug("student name load component")
@@ -130,15 +165,4 @@ def StudentNameLoad(roster: Union[solara.Reactive[Roster], Roster], student_name
     student_names_set = solara.use_reactive(names_set)
   
     validator = partial(validate_table, required_sids = roster.value.student_ids)
-    StudentLoadDialog(student_names, student_names_set = student_names_set, no_dialog = not use_dialog, validator = validator)
-    r = copy.copy(roster.value)
-    if (student_names.value is not None) and (not student_names_set.value):
-        logger.debug("updating student names")
-        student_names_dict = {row['student_id']: row['name'] for _, row in student_names.value.iterrows()}
-        r.set_student_names(student_names_dict)
-        # r.short_report(refresh = True)
-        r.refresh_data()
-        roster.set(r)
-        student_names_set.set(True)
-        on_update(student_names.value)
-        # student_names.set(None)
+    StudentLoadDialog(student_names, student_names_set = student_names_set, no_dialog = not use_dialog, validator = validator, id_list = roster.value.student_ids)
