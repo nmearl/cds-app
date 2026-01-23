@@ -196,15 +196,14 @@ class MonorepoStateAdapter(StateAdapter):
         for student in api_roster:
             transformed = self._transform_student_entry(student)
             result.append(transformed)
-        
         return result
     
     def fix_progress(self, stage: Dict):
-        max_step = stage['max_step']
-        total_steps = stage['total_steps']
-        progress = max(0,(max_step - 1)) / (total_steps - 1)
-        stage['progress'] = progress
-        return progress
+        """
+        In the monorepo format, the progress is already 
+        calculated by the Stage and stored in the database.
+        """
+        return stage['progress']
     
     
     def fix_stages(self, stage_states: Dict):
@@ -265,6 +264,9 @@ class MonorepoStateAdapter(StateAdapter):
                     measurement['last_modified'] = last_modified
         
         stage_states = self.fix_stages(story_state.pop('stage_states'))
+        # check if student_id is in the story_state
+        if 'student_id' not in story_state:
+            story_state['student_id'] = student_id
         student['app_state'] = app
         student['story_state'] = story_state
         student['story_state']['mc_scoring'] = self.get_multiple_choice(stage_states)
