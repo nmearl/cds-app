@@ -11,7 +11,7 @@ from math import nan
 from .utils import l2d, convert_column_of_dates_to_datetime, get_or_none
 
 from typing import List, Dict, cast, Optional, Any, Union, TypedDict
-from .common_types import StateInterface
+from .common_types import StateInterface, StageProgress
 from .database.old_types import (
     StudentEntryList,
     MCScore,
@@ -45,7 +45,14 @@ class Student():
 
 class StudentIDList(TypedDict):
     student_id: List[int]
-    
+
+class StudentProgressEntry(TypedDict):
+    student_id: int
+    student_name: str
+    total_score: int
+    out_of_possible: int
+    percent_complete: float
+    progress_dict: Dict[str, StageProgress]
 # Database versions
 # Version 1: class_id < 215
 # Version 2: class_id >= 335
@@ -501,6 +508,27 @@ class Roster():
             state = self.student2state(student)
             scores.append(state.story_score)
         return scores
+
+    @property
+    def student_progress(self) -> Dict[int, StudentProgressEntry]:
+        if len(self.roster) == 0:
+            return {}
+        progress: Dict[int, Dict[str, Any]] = {}
+        for student in self.roster:
+            student_id = student['student_id']
+            state = self.student2state(student)
+            name = student.get('student', {}).get('name')
+            if not name:
+                name = f"Student {student_id}"
+            progress[student_id] = {
+                'student_id': student_id,
+                'student_name': name,
+                'total_score': state.story_score,
+                'out_of_possible': state.get_possible_score(),
+                'percent_complete': state.percent_completion,
+                'progress_dict': state.progress_dict,
+            }
+        return progress
 
     @property
     def max_stage_index(self):
