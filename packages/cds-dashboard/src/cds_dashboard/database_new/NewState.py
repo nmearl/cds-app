@@ -94,8 +94,6 @@ class State(StateInterface):
         
         frac = self.stage_fraction_completed(stage_name)
         string_fmt = f"{frac:.0%} through Stage {stage_name}"
-        if (self.student_id == 5588 or self.student_id == 5601):
-            logger.debug(f"Student {self.student_id}: how_far: {string_fmt}, frac={frac}")
             
         return {'string': string_fmt, 'value':frac or nan}
 
@@ -112,8 +110,7 @@ class State(StateInterface):
                 'index': stage_index,
                 'progress': frac,
             }
-        if (self.student_id == 5588 or self.student_id == 5601):
-            logger.debug(f"Student {self.student_id}: progress_dict: {progress}")
+
         return progress
     
     @property
@@ -133,8 +130,6 @@ class State(StateInterface):
         
         if stage_name in self.stages.keys():
             if 'progress' in self.stages[stage_name]:
-                if (self.student_id == 5588 or self.student_id == 5601):
-                    logger.debug(f"Student {self.student_id}: stage {stage_name} progress: {self.stages[stage_name]['progress']}")
                 return self.stages[stage_name]['progress']
             else:
                 self._error(f"Stage {stage_name} has no progress key")
