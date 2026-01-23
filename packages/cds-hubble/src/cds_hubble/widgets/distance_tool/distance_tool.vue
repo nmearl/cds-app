@@ -58,13 +58,11 @@
         class="fov-canvas"
         ref="fovCanvas"
       ></canvas>
-      <v-lazy>
-        <jupyter-widget
-          :widget="widget"
-          class="wwt-widget"
-          :style="wwtStyle"
-        />
-      </v-lazy>
+      <jupyter-widget
+        :widget="widget"
+        class="wwt-widget"
+        :style="wwtStyle"
+      />
       <v-tooltip
         top
         class="fab-tooltip"
