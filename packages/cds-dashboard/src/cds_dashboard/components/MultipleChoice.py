@@ -4,6 +4,7 @@ import reacton.ipyvuetify as rv
 
 import pandas as pd
 from pandas import DataFrame, Series
+from numpy import atleast_1d
 from ..cds_api_utils.Query import QueryCosmicDSApi as Query
 import plotly.express as px
 from .Collapsible import Collapsible
@@ -208,6 +209,7 @@ def MultipleChoiceQuestionSingleStage(roster: Reactive[Roster] | Roster, df = No
         return (i is not None) and (i != 0)
     
     def avg(x):
+        x = atleast_1d(x)
         top = sum([i for i in x if isgood(i)])
         bot = len([i for i in x if isgood(i)])
         if bot == 0:

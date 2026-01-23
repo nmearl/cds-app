@@ -151,7 +151,12 @@ class QueryCosmicDSApi():
             logger.debug(req.text)
             return None
     
-    def get_class_data(self, class_id = None, student_ids = None, story = None):
+    def get_hubble_class_measurements(self, class_id, complete_only=True, exclude_merged=False):
+        query = f"complete_only={str(complete_only).lower()}&exclude_merge={str(exclude_merged).lower()}"
+        url = f"{self.url_head}/hubbles_law/measurements/classes/{class_id}?{query}"
+        return self.get(url).json()
+    
+    def get_class_data(self, class_id = None, student_ids = None, story = None, exclude_merged = False):
         class_id = self.class_id or class_id
         story = self.story or story
 
@@ -177,8 +182,9 @@ class QueryCosmicDSApi():
             return None
         
         if student_ids is None:
-            filter_fun = lambda m: m['class_id'] == class_id and m['student_id'] in student_id
-            measurements = [m for m in self.get_all_data(story = story, transpose = False)['measurements'] if filter_fun(m)]
+            # filter_fun = lambda m: m['class_id'] == class_id and m['student_id'] in student_id
+            # measurements = [m for m in self.get_all_data(story = story, transpose = False)['measurements'] if filter_fun(m)]
+            measurements = self.get_hubble_class_measurements(class_id, exclude_merged=exclude_merged)["measurements"]
             # check that there are measurements for every student_id   
         else:
             if isinstance(student_ids, int):

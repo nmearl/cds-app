@@ -176,9 +176,10 @@ class Roster():
     def l2d(self, list_of_dicts, fill_val=None):
         return l2d(list_of_dicts, fill_val)
 
-    def get_class_data(self, refresh: bool = False, df: bool = False) -> Union[Dict, pd.DataFrame]:
+    def get_class_data(self, refresh: bool = False, df: bool = False, exclude_merged: bool = False) -> Union[Dict, pd.DataFrame]:
         if self.data is None or self._refresh or refresh:
-            res = self.adapter.get_class_measurements(self.roster)
+            res = self.adapter.get_class_measurements(self.roster, exclude_merged=exclude_merged)
+            # do something
             if res is None or res == {} or len(res) == 0:
                 res = {'student_id': []}
             self.data = res if res is not None else {'student_id': []}
