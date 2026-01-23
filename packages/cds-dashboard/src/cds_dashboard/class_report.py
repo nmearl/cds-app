@@ -442,18 +442,27 @@ class Roster():
         self.has_real_names = True
         self.real_names = student_names
 
-    def get_student_name(self, sid=None):
+    def get_student_name(self, sid=None, fill = True):
         if sid is None:
-            return 'None'
+            return 'None' if fill else None
         if len(self.roster) > 0:
             index = self.student_ids.index(sid) if sid in self.student_ids else None
             if index is not None:
-                return self.roster[index]['student'].get('name', str(sid))
+                return self.roster[index]['student'].get('name', str(sid) if fill else None)
             # else:
             #     logger.debug(f'{sid} not in roster')
 
-        return str(sid)
-
+        return str(sid) if fill else None
+    
+    def get_student_names(self):
+        return [self.get_student_name(sid, fill=False) for sid in self.student_ids]
+    
+    @property 
+    def all_names_set(self):
+        sn = self.get_student_names()
+        return all([name is not None for name in sn])
+        
+    
     @property
     def responses(self):
         if len(self.roster) > 0:
@@ -740,6 +749,9 @@ class Roster():
         self.question_keys()
         logger.debug(' >>> Getting class data')
         self.get_class_data()
+        if self.has_real_names and self.real_names is not None:
+            logger.debug(' >>> Putting back student names')
+            self.set_student_names(self.real_names)
         self._refresh = False
 
     def empty_copy(self):
