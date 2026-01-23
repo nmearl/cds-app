@@ -73,7 +73,9 @@ def StudentLoadDialog(student_names = None, student_names_set = None, dialog_ope
     def on_internal_names_change(value):
         if student_names.value is not None:
             new = pd.concat([student_names.value, value]).drop_duplicates(subset=['student_id'], keep='last').reset_index(drop=True)
-            student_names.set(new)
+            if not new.equals(student_names.value):
+                logger.debug("updating student_names reactive from dialog")
+                student_names.set(new)
         else:
             student_names.set(value)
             

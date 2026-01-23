@@ -50,7 +50,11 @@ def Dashboard(roster: Reactive[Roster] | Roster, student_names = None):
             values_dict = {row['student_id']: row['name'] for _, row in value.iterrows()}
             student_names_dict = {row['student_id']: row['name'] for _, row in student_names.value.iterrows()}
             student_names_dict.update(values_dict)
-            student_names.set(pd.DataFrame.from_dict(student_names_dict))
+            new = pd.DataFrame.from_dict(student_names_dict)
+            # check if the dataframes are different
+            if not new.equals(student_names.value):
+                logger.debug("updating student_names reactive")
+                student_names.set(new)
             
     internal_student_names = solara.use_reactive(None, on_change=on_internal_names_change)
     
@@ -84,8 +88,9 @@ def Dashboard(roster: Reactive[Roster] | Roster, student_names = None):
         logger.debug("student_names has values, setting on roster")
         roster.value.set_student_names({row['student_id']: row['name'] for _, row in internal_student_names.value.iterrows()})
         # roster.value.short_report(refresh = True)
-        roster.value.refresh_data()
+        # roster.value.refresh_data()
         # roster.set(roster.value)
+    solara.use_effect(lambda: roster.value.refresh_data(), [internal_student_names.value])
     
     # a non-displaying component to 
     # make sure the student_id is valid
