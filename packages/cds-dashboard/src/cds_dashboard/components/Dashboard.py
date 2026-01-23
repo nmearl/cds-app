@@ -37,13 +37,24 @@ def initStudentID(student_id, roster):
 
 
 @solara.component
-def Dashboard(roster: Reactive[Roster] | Roster, student_names = None, add_names = False): 
+def Dashboard(roster: Reactive[Roster] | Roster, student_names = None): 
     roster = solara.use_reactive(roster)
-    are_names_set = solara.use_reactive(add_names)
+    are_names_set = solara.use_reactive(False)
     
     
     # student_id = solara.use_reactive(None)
-    student_names = solara.use_reactive(student_names)
+    student_names = solara.use_reactive(student_names)  
+    def on_internal_names_change(value):
+        logger.debug(f"internal student names changed to {value}")
+        if student_names.value is not None:
+            values_dict = {row['student_id']: row['name'] for _, row in value.iterrows()}
+            student_names_dict = {row['student_id']: row['name'] for _, row in student_names.value.iterrows()}
+            student_names_dict.update(values_dict)
+            student_names.set(pd.DataFrame.from_dict(student_names_dict))
+            
+    internal_student_names = solara.use_reactive(None, on_change=on_internal_names_change)
+    
+    logger.debug(f"student_names initial value: {internal_student_names.value}")
     # if 'cds-student-names' in solara.cache.storage:
     #     if class_id.value in solara.cache.storage['cds-student-names']:
     #         logger.debug("loading student names from cache")
@@ -69,8 +80,9 @@ def Dashboard(roster: Reactive[Roster] | Roster, student_names = None, add_names
     if roster.value is None:
         return
     
-    if are_names_set.value:
-        roster.value.set_student_names({row['student_id']: row['name'] for _, row in student_names.value.iterrows()})
+    if internal_student_names.value is not None:
+        logger.debug("student_names has values, setting on roster")
+        roster.value.set_student_names({row['student_id']: row['name'] for _, row in internal_student_names.value.iterrows()})
         # roster.value.short_report(refresh = True)
         roster.value.refresh_data()
         # roster.set(roster.value)
@@ -112,8 +124,9 @@ def Dashboard(roster: Reactive[Roster] | Roster, student_names = None, add_names
                 ClassProgress(roster)
                 rv.Spacer(style_="flex-grow: 1;")
                 # solara.Markdown (f"{student_names.value}")
-                StudentNameLoad(roster, student_names, names_set=are_names_set)
+                StudentNameLoad(roster, internal_student_names, student_names_set=are_names_set)
                 DownloadReport(roster) 
+            
             StudentProgressTable(roster, student_id = student_id, stage_labels = labels, height='50vh')
 
         with solara.Card(elevation=4):

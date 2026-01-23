@@ -65,7 +65,6 @@ def EducatorDashboard(url_params = {}, class_list = [], class_info_list = []):
     student_names = solara.use_reactive(None)
     dashboard_names = solara.use_reactive(None)  # , on_change=on_change_names)
     first_run = solara.use_reactive(True)
-    are_names_set = solara.use_reactive(False)
 
     story_name = "HubbleDS"
 
@@ -100,6 +99,6 @@ def EducatorDashboard(url_params = {}, class_list = [], class_info_list = []):
                 icon_only=True,
             )
 
-        Dashboard(roster, dashboard_names, add_names=dashboard_names.value is not None)
+        Dashboard(roster, dashboard_names)
 
         # solara.DataFrame(df.value)
