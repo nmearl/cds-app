@@ -57,7 +57,7 @@ def FakeStudentDataLoadInterface(name_dataframe = None, on_load = None, student_
     
     def gen_fake_data():
         names = [f'Fake name {i}' for i in id_list]
-        df = pd.DataFrame({'student_id': id_list, 'name': names})
+        df = pd.DataFrame({'student_id': id_list[1:], 'name': names[1:]})
         name_dataframe.set(df)
     
     solara.Button(label="Generate Fake Student Names", icon_name='mdi-account-multiple-plus', on_click=gen_fake_data, classes=["my-buttons","student-name-button"])
@@ -110,18 +110,33 @@ def StudentLoadDialog(student_names = None, student_names_set = None, dialog_ope
             # assume that we are running the component in standalone mode and set student_names_set to true
             # otherwise this needs to be set elsewhere to avoid an infinite loop. this probably
             # can be done better, but this works and is stable so . This not needed if running the full dashboard
-            if (table_valid.value[1] != 0) and (student_names_set.value is None):
+            if (table_valid.value['missing'] != 0) and (student_names_set.value is None):
                 logger.error("setting student names set to true in standalone mode")
                 student_names_set.set(True)
                 # raise Exception("student_names_set must be provided when there are missing student IDs in the table")
                 
-            if table_valid.value[0] and student_names_set.value:
+            
+            if table_valid.value['all_present'] and student_names_set.value:
                 logger.debug("table valid and names set")
                 solara.Success("Successfully updated student names.", dense=True, outlined=True, classes=["my-success"])
-            elif (not table_valid.value[0]) and student_names_set.value:
+            
+            # missing IDs but names have been set
+            elif (not table_valid.value['all_present']) and student_names_set.value:
                 logger.debug("table invalid but names set")
                 solara.Success("Updated student names.", dense=True, outlined=True, classes=["my-success"])
-                solara.Warning("Some student IDs ({}) are missing from the table.".format(table_valid.value[1]), dense=True, outlined=True, icon='mdi-traffic-cone')
+                solara.Warning("Some student IDs ({}) are missing from the table.".format(table_valid.value['missing']), dense=True, outlined=True, icon='mdi-traffic-cone')
+            elif table_valid.value['reason'] == 'no table':
+                logger.debug("no table loaded yet")
+                solara.Info("Please load a student names file to proceed.", dense=True, outlined=True, icon='mdi-information')
+            # missing IDs and names have not been set
+            elif (not table_valid.value['all_present']) and (not student_names_set.value):
+                logger.debug("table invalid and names not set")
+                solara.Warning("Presently missing student IDs: {}".format(table_valid.value['missing']), dense=True, outlined=True, icon='mdi-traffic-cone')
+            
+            # if table is valid but names have not been set
+            elif table_valid.value['all_present'] and (not student_names_set.value):
+                logger.debug("table valid but names not set")
+                solara.Info("All student IDs are present in the table. Please confirm to set student names.", dense=True, outlined=True, icon='mdi-information')
             
                 
             with solara.CardActions():
@@ -136,13 +151,13 @@ def validate_table(table, required_sids):
             
         if table is None:
             logger.debug("table is none")
-            return False, 0
+            return {'all_present':False, 'missing': 0, 'reason': 'no table'}
         if 'student_id' not in table.columns:
             logger.debug("no student id column")
-            return False, 0
+            return {'all_present':False, 'missing': 0, 'reason': 'no student_id column'}
         if 'name' not in table.columns:
             logger.debug("no name column")
-            return False, 0
+            return {'all_present':False, 'missing': 0, 'reason': 'no name column'}
         
         sids = table['student_id'].tolist()
         
@@ -151,7 +166,7 @@ def validate_table(table, required_sids):
         missing = [r for r in required_sids if r not in sids]
         if not present:
             logger.debug(f"missing ids {missing}")
-        return present, missing
+        return {'all_present':present, 'missing': missing, 'reason': 'Some IDs missing' if not present else 'All IDs present'}
 
 def set_names_on_roster(
     roster: Union[solara.Reactive[Roster], Roster] = None, 
@@ -185,7 +200,7 @@ def StudentNameLoad(roster: Union[solara.Reactive[Roster], Roster], student_name
     # if the student_names is set, we need to validate it
     if student_names_set.value:
         valid = validator(student_names.value)
-        if not valid[0]:
+        if not valid['all_present']:
             student_names_set.set(False)
             
     StudentLoadDialog(student_names, student_names_set = student_names_set, no_dialog = not use_dialog, validator = validator, id_list = roster.value.student_ids)

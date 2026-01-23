@@ -173,6 +173,16 @@
     padding-top: 0.5rem;
 }
 
+.cds-dashboard-file-input {
+    border: 1px solid var(--md-blue-800);
+    border-radius: 4px;
+    padding: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--md-blue-800);
+    background-color: white;
+}
+
 .theme--dark .cds-dashboard #table-from-rows tbody tr:not(:hover) {
     background-color: #1e1e1e;
 }
