@@ -124,7 +124,7 @@ def StudentLoadDialog(student_names = None, student_names_set = None, dialog_ope
                 
             with solara.CardActions():
                 solara.Button(icon_name="mdi-close-circle",label = "Close", on_click = lambda: dialog_open.set(False), text=True, outlined=True, classes=["dash-dialog-button"])
-                FakeStudentDataLoadInterface(internal_student_names, student_names_set = student_names_set, id_list = id_list)
+                # FakeStudentDataLoadInterface(internal_student_names, student_names_set = student_names_set, id_list = id_list)
 
 
 def validate_table(table, required_sids):
