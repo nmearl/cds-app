@@ -454,18 +454,18 @@ resource "aws_cloudfront_distribution" "apps" {
     target_origin_id = "alb-${aws_lb.main.id}"
 
     forwarded_values {
-      query_string = false
-      headers      = ["Origin", "Access-Control-Request-Headers", "Access-Control-Request-Method"]
+      query_string = true
+      headers      = ["*"]
 
       cookies {
-        forward = "none"
+        forward = "all"
       }
     }
 
     viewer_protocol_policy = "redirect-to-https"
     min_ttl                = 0
-    default_ttl            = 86400
-    max_ttl                = 31536000
+    default_ttl            = 3600
+    max_ttl                = 86400
     compress               = true
   }
 
