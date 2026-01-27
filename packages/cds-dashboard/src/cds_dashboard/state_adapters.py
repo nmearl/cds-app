@@ -276,43 +276,18 @@ class MonorepoStateAdapter(StateAdapter):
         return student
     
     def get_class_measurements(self, roster: List[OldRosterEntry], exclude_merged=False) -> Dict[str, List[Any]]:
-        """
-        Get all measurements for the class from the roster.
-        For monorepo, measurements are already in the roster data.
-        """
-        result: Dict[str, List[Any]] = {}
-        
-        for idx, student in enumerate(roster):
-            student_id = student['student_id']
-            measurements = student.get('story_state', {}).get('measurements', [])
-            
-            # Add each measurement to the result dict
-            for measurement in measurements:
-                if measurement is None:
-                    continue  # Skip None measurements
-                if not isinstance(measurement, dict):
-                    logger.warning(f"Student {student_id}: Skipping non-dict measurement: {type(measurement)}")
-                    continue
-                for key, value in measurement.items():
-                    if key not in result:
-                        result[key] = []
-                    result[key].append(value)
-        
-        if len(result) == 0:
-            result = {'student_id': []}
-        
-        return result
+        """Get all measurements for the class. Uses API call for Solara format."""
+
+        res = self.query.get_class_data(class_id=self.query.class_id, exclude_merged=exclude_merged)
+        if res is None or res == {} or len(res) == 0:
+            res = {'student_id': []}
+        return res if res is not None else {'student_id': []}
     
     def get_student_measurements(self, roster: List[OldRosterEntry], student_id: int) -> List[Dict[str, Any]]:
-        """
-        Get measurements for a specific student from the roster.
-        For monorepo, measurements are already in the roster data.
-        """
-        for student in roster:
-            if student['student_id'] == student_id:
-                return student.get('story_state', {}).get('measurements', [])
-        
-        return []
+        """Get measurements for a specific student. Uses API call for Solara format."""
+
+        result = self.query.get_student_data(student_id)
+        return result.get('measurements', []) if result else []
     
     @property
     def version_name(self) -> str:
