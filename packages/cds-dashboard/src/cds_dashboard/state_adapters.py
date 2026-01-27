@@ -272,7 +272,12 @@ class MonorepoStateAdapter(StateAdapter):
         student['story_state']['mc_scoring'] = self.get_multiple_choice(stage_states)
         student['story_state']['responses'] = self.get_free_responses(stage_states)
         student['story_state']['stages'] = stage_states
-        
+        if ('stage_5_class_data_students' in story_state and len(story_state['stage_5_class_data_students']) > 0):
+            student['story_state']['class_data_students'] = story_state['stage_5_class_data_students']
+        elif ('stage_4_class_data_students' in story_state and len(story_state['stage_4_class_data_students']) > 0):
+            student['story_state']['class_data_students'] = story_state['stage_4_class_data_students']
+        else:
+            pass
         return student
     
     def get_class_measurements(self, roster: List[OldRosterEntry], exclude_merged=False) -> Dict[str, List[Any]]:

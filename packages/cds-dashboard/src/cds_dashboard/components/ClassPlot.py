@@ -26,7 +26,6 @@ def ClassPlot(dataframe,
             show_hst = True
               ):
     
-    subset = None
     
     logger.debug('Generating Class Plot')
     
