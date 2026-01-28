@@ -156,6 +156,14 @@ resource "aws_security_group" "alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description = "HTTPS from CloudFront and direct access"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -308,6 +316,53 @@ resource "aws_lb_listener_rule" "cds_hubble" {
   }
 }
 
+# ACM Certificate for ALB (using existing imported certificate)
+data "aws_acm_certificate" "alb" {
+  domain   = var.alb_domain_name
+  statuses = ["ISSUED"]
+}
+
+# HTTPS Listener
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = "443"
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = data.aws_acm_certificate.alb.arn
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.cds_portal.arn
+  }
+
+  tags = {
+    Name        = "${var.environment}-https-listener"
+    Environment = var.environment
+  }
+}
+
+# HTTPS Listener Rule for Hubble
+resource "aws_lb_listener_rule" "cds_hubble_https" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 100
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.cds_hubble.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/hubbles-law*"]
+    }
+  }
+
+  tags = {
+    Name        = "${var.environment}-hubble-https-rule"
+    Environment = var.environment
+  }
+}
+
 # CloudFront Origin Access Control for ALB
 resource "aws_cloudfront_origin_access_control" "alb" {
   name                              = "${var.environment}-alb-oac"
@@ -324,6 +379,7 @@ resource "aws_cloudfront_distribution" "apps" {
   default_root_object = ""
   comment             = "${var.environment} CloudFront distribution for CDS applications"
   price_class         = "PriceClass_100"
+  aliases             = [var.alb_domain_name]
 
   origin {
     domain_name = aws_lb.main.dns_name
@@ -332,7 +388,7 @@ resource "aws_cloudfront_distribution" "apps" {
     custom_origin_config {
       http_port              = 80
       https_port             = 443
-      origin_protocol_policy = "http-only"
+      origin_protocol_policy = "https-only"
       origin_ssl_protocols   = ["TLSv1.2"]
 
       origin_keepalive_timeout = 60
@@ -420,7 +476,9 @@ resource "aws_cloudfront_distribution" "apps" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    acm_certificate_arn      = data.aws_acm_certificate.alb.arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
   }
 
   tags = {

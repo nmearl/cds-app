@@ -12,3 +12,6 @@ cds_hubble_max_capacity = 4
 # GitHub repository for CI/CD
 github_repository = "nmearl/cds-app"
 github_branch = "main"
+
+# ALB domain name for SSL certificate
+alb_domain_name = "app.cosmicds.cfa.harvard.edu"

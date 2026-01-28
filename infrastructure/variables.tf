@@ -47,7 +47,7 @@ variable "cds_hubble_max_capacity" {
 }
 
 variable "cloudfront_secret" {
-  description = "Secret value for CloudFront custom header. Leave empty to auto-generate."
+  description = "Secret value for CloudFront custom header to prevent direct ALB access. Leave empty to auto-generate."
   type        = string
   sensitive   = true
   default     = ""
@@ -68,4 +68,9 @@ variable "github_branch" {
   description = "GitHub branch to track for changes"
   type        = string
   default     = "main"
+}
+
+variable "alb_domain_name" {
+  description = "Domain name for the ALB SSL certificate"
+  type        = string
 }
