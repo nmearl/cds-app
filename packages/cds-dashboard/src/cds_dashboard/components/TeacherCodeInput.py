@@ -13,6 +13,7 @@ class_query_res = [
     # {'id': 204, 'name': '204: HubbleDS PR291'},
     # {'id': 280, 'name': '270'},
     # {'id': 214, 'name': '214'},
+    {'id': 337, 'name': '337: 2025-11-06 Stress Test (Monorepo)'},
     {'id': 212, 'name': '212: 2024-01-04 stress test'},
     {'id': 211, 'name': '211: 2023-12-13 SED test'},
     {'id': 209, 'name': '209: 2023-12-05 Summative Class 6'},

@@ -8,6 +8,8 @@ import re
 
 from ..logger_setup import logger
 
+from .CDSFileInput import CDSFileInput
+
 
 @solara.component
 def TableLoad(file_info = None, load_complete = None, allow_excel = False):
@@ -20,12 +22,15 @@ def TableLoad(file_info = None, load_complete = None, allow_excel = False):
     msg, set_msg = solara.use_state("")
     
     def on_file(file: FileInfo):
+        logger.debug("$#$#"*100)
         filename = file['name']
         
         isCSV = filename.endswith('.csv')
         isExcel = filename.endswith('.xlsx') or filename.endswith('.xls')
 
         if isCSV or (isExcel and allow_excel):
+            if file.get('data') is None:
+                file['data'] = file['file_obj'].read()
             file_info.set(file)
             set_valid_file(True)
         else:
@@ -40,6 +45,7 @@ def TableLoad(file_info = None, load_complete = None, allow_excel = False):
         set_msg("")
     
     with solara.Div():
+        solara.Markdown(f"File is Loaded: {load_complete.value}")
         solara.Markdown(r'''
             Read in a local CSV (comma-separated value) file containing student IDs and names to display names in the dashboard.
                         
@@ -50,6 +56,10 @@ def TableLoad(file_info = None, load_complete = None, allow_excel = False):
             solara.FileDrop(
                 on_file=on_file,
                 lazy=False, # puts data in the [data] part of FileInfo
+            )
+            CDSFileInput(
+                on_file=on_file,
+                label="Or click to select a file",
             )
         if load_complete.value and valid_file:
             solara.Button("Clear data", on_click=on_click)
