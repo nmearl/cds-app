@@ -39,6 +39,17 @@ class MCScore(TypedDict, total=False):
 
 
 # ============================================================================
+# Stage Progress Types
+# ============================================================================
+
+class StageProgress(TypedDict):
+    """Type for per-stage progress data"""
+    name: str
+    index: Optional[int]
+    progress: Optional[float]
+
+
+# ============================================================================
 # State Interface Protocol
 # ============================================================================
 
@@ -70,6 +81,8 @@ class StateInterface(Protocol):
     def story_score(self) -> int: ...
     @property
     def how_far(self) -> Dict[str, Union[str, float]]: ...
+    @property
+    def progress_dict(self) -> Dict[str, StageProgress]: ...
     @property
     def current_marker(self) -> Union[str, float]: ...
     @property

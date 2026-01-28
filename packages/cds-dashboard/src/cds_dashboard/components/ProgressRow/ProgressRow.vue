@@ -16,7 +16,7 @@
     
     <td 
       class="progress-table-td progress-table-progress"
-      v-for="step in steps" 
+      v-for="step in stepKeys" 
       :key="step" 
       >
         <div
@@ -56,65 +56,69 @@ export default {
     },
 
     // progress bar props
-    
-    steps: {
-      type: Number,
-      default: 7
+    stepProgress: {
+      type: Object,
+      required: true,
     },
-    currentStep: {
-      type: Number,
-      default: 6
-    },
-    currentStepProgress: {
-      type: Number,
-      default: 50,
+    stepOrder: {
+      type: Array,
+      default: () => [],
     },
     height: {
-      type: Number,
+      type: [Number, String],
       default: "20px"
     },
     gap: {
-      type: Number,
+      type: [Number, String],
       default: "0px"
     }
   },
 
   mounted() {
     // console.log("ProgressRow mounted");
-    // console.log(`steps: ${this.steps} currentStep: ${this.currentStep} currentStepProgress: ${this.currentStepProgress}`)
+    // console.log({ stepOrder: this.stepOrder, stepProgress: this.stepProgress })
 
   },
 
   methods: {
+    normalizeProgress(value) {
+      const num = Number(value);
+      if (!Number.isFinite(num)) {
+        console.warn(`Invalid progress value: ${value}`);
+        return 0;
+      }
+      const pct = num <= 1 ? num * 100 : num;
+      return Math.min(Math.max(pct, 0), 100);
+    },
     getStepClass(step) {
-      if (step < this.currentStep) {
+      const pct = this.normalizeProgress(this.stepProgress[step]);
+      if (pct >= 100) {
         return 'completed';
-      } else if (step === this.currentStep) {
-        if (this.currentStepProgress === 100) {
-          return 'completed';
-        } else {
-          return 'in-progress';
-        }
+      } else if (pct > 0) {
+        return 'in-progress';
       } else {
         return 'not-started';
       }
     },
 
     getStepProgress(step) {
-      if (step < this.currentStep) {
-        return '100%';
-      } else if (step === this.currentStep) {
-        return this.currentStepProgress + '%';
-      } else {
-        return '0%';
-      }
+      const pct = this.normalizeProgress(this.stepProgress[step]);
+      return Math.round(pct) + '%';
     }
   },
 
   computed: {
+    stepKeys() {
+      if (this.stepOrder.length > 0) {
+        return this.stepOrder;
+      }
+      return Object.keys(this.stepProgress)
+        .map((value) => Number(value))
+        .sort((a, b) => a - b);
+    },
     cssProps() {
       return { 
-        '--number-steps': this.steps,
+        '--number-steps': this.stepKeys.length,
         '--meter-height': this.height
         }
 

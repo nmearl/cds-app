@@ -16,7 +16,7 @@ from .components.RefreshClass import RefreshClass
 
 
 @solara.component
-def EducatorDashboard(url_params = {}, class_list = []):
+def EducatorDashboard(url_params = {}, class_list = [], class_info_list = []):
     query = QueryCosmicDSApi()
     
     router = solara.use_router()
@@ -30,10 +30,19 @@ def EducatorDashboard(url_params = {}, class_list = []):
     
     class_id = solara.use_reactive(url_id)
     class_id_list = solara.use_reactive(class_list)
-    
-    solara.Markdown("## Educator Dashboard")
+    class_info = {'name': None, 'code': None}
+    for cls in class_info_list:
+        if ('id' in cls) and (cls['id'] == class_id.value):
+            class_info = cls
+            break    
+    # solara.Markdown("## Educator Dashboard")
     # show class id
-    solara.Markdown(f"### Class ID: {class_id.value}")
+    solara.Markdown(f"")
+    solara.Markdown(f"""
+    ### Class Name: {class_info['name']}
+    
+    Class ID: {class_id.value}   &emsp;&&emsp;   Class Code: {class_info['code']}""")
+    
     
 
     

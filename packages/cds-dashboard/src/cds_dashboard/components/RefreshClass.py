@@ -25,8 +25,7 @@ def RefreshClass(rate_minutes = 5,
     logger.debug("**** refresh class component ****")
     if on_refresh is None:
         def on_refresh():
-            logger.debug('refreshing class data')
-            logger.info(f"refreshing class data class id: {roster.value.class_id}")
+            logger.debug(f"refreshing class data class id: {roster.value.class_id}")
             r = roster.value.empty_copy()
             if student_names is not None:
                 student_names_dict = {row['student_id']: row['name'] for _, row in student_names.iterrows()}

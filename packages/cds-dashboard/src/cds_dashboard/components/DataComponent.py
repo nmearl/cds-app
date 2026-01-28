@@ -121,7 +121,6 @@ def DataSummary(roster: Reactive[Roster] | Roster = None, student_id = None, on_
                                   ungroup = True)
         main_name = f'Data not seen by {student_id.value}'
         subset_name = f'Data seen by {student_id.value}'
-        
     
     if allow_click:
         ClassPlot(data, on_click=on_plot_click, label_col='name', select_on = 'student_id', selected = student_id, allow_click=True, subset = subset, subset_label=subset_name, main_label=main_name, subset_color='#0097A7', main_color='#BBBBBB', show_hubble = show_hubble.value, show_hst = show_hst.value)

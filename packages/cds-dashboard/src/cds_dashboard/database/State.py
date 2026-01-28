@@ -91,6 +91,19 @@ class State(StateInterface):
             string_fmt = f"{frac:.0%} through Stage {stage_index}"
             
         return {'string': string_fmt, 'value':frac}
+
+    @property
+    def progress_dict(self) -> Dict[str, Dict[str, Union[str, float, int, None]]]:
+        progress: Dict[str, Dict[str, Union[str, float, int, None]]] = {}
+        for stage_index in sorted(self.stage_map.keys()):
+            stage_name = self.stage_map[stage_index]
+            frac = self.stage_fraction_completed(stage_index)
+            progress[stage_name] = {
+                'name': stage_name,
+                'index': stage_index,
+                'progress': frac,
+            }
+        return progress
     
     def stage_fraction_completed(self, stage) -> float:
         if stage is None:

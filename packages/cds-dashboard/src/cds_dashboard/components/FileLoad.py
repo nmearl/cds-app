@@ -107,10 +107,9 @@ def CSVFileInfoToTable(file_info, on_table = None, display = True):
                 logger.error('header row is not valid. revert to no_header version')
                 table = table_no_header
             else:
-                logger.info('has good header row')
                 table = table_with_header
         else:
-            logger.info('no header row')
+            logger.error('no header row')
             table = table_no_header
     else:
         ext = filename.split('.')[-1]

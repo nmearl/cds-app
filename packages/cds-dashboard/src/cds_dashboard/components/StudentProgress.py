@@ -1,22 +1,20 @@
 import solara
-from pandas import DataFrame
 from ..class_report import Roster
 from solara.reactive import Reactive
-from typing import Optional
+from typing import Optional, List, cast
 
 from .TableFromRows import TableFromRows
 from .ProgressRow import ProgressRow
 
-from typing import Optional, List, cast
-
 @solara.component
 def StudentProgressRow(progress,
                     on_selected_id = None,
-                    selected_id: Optional[int] = None # type: ignore 
+                    selected_id: Optional[int] = None, # type: ignore
+                    step_order: Optional[List[int]] = None,
                     ):
     """
     progress should be a dictionary with the following keys:
-    student_id, student_name, total_points, number_of_stages, current_stage, current_stage_progress
+    student_id, student_name, total_points, percent_complete, step_progress
 
     """
     
@@ -46,50 +44,44 @@ def StudentProgressRow(progress,
                 on_selected_id(int(student_id) if event else None)
 
     
+    if step_order is None:
+        step_order = sorted(progress['step_progress'].keys())
+
     ProgressRow(column_data=student_data, 
                 selected = selected.value, #str(selected_id.value) == str(student_id),
                 on_selected=on_row_click,
-                steps=progress['number_of_stages'], 
-                currentStep=progress['current_stage'], 
-                currentStepProgress=progress['current_stage_progress'], 
+                stepOrder=step_order,
+                stepProgress=progress['step_progress'],
                 height='100%', gap="5px")
 
 
 @solara.component
 def StudentProgressTable(roster: Optional[Reactive[Roster] | Roster] = None, 
-                         progress_data = None, 
                          student_id = None, 
                          on_student_id = None, 
                          headers = None, 
                          stage_labels = [],
-                         height = '100%'
+                         height = '100%',
                          ):
     """
-    progress_data should be either a dataframe or a dictionary
-    this will work with reactive or non-reactive data
-    
-    If a dictionary it can be either a list of records
-    or a record with a list of values for each key
-    
-    progress_data should have the following keys:
-    student_id, username, total_score, max_stage_index, progress
-    where progress is the progress of the max stage
+    progress_data should be a dictionary keyed by student_id.
+    Each entry should have the following keys:
+    student_id, student_name, total_score, out_of_possible, percent_complete, progress_dict
+    progress_dict should map stage names to {name, index, progress}.
     
     """
     
-    roster = solara.use_reactive(roster) # type: ignore
-    data = roster.value.short_report()
+    roster = solara.use_reactive(roster)
+    if roster.value is None:
+        solara.Error(label="No roster available. Please contact the CosmicDS team for help.", outlined=True, text = True)
+        return
     
-    if data is None:
+    data = roster.value.student_progress
+    
+    if data is None or (isinstance(data, dict) and len(data) == 0):
         solara.Error(label="No data available. Please contact the CosmicDS team for help.", outlined=True, text = True)
         return
     
-    
-    # make sure we have a dataframe
-    if isinstance(data, dict):
-        data = DataFrame(data)
-    
-
     def on_student_id_wrapper(value):
         setfunc = on_student_id or student_id.set
         
@@ -102,28 +94,39 @@ def StudentProgressTable(roster: Optional[Reactive[Roster] | Roster] = None,
 
     if headers is None:
         headers = ['', 'Student<br>ID', 'Student<br>Name', 'Points/<br>available', 'Progress<br>(%)'] + stage_labels
+    student_ids = roster.value.student_ids if roster.value else list(data.keys())
+    stage_order = list(range(0, len(stage_labels)))
+    
     with TableFromRows(headers=headers, table_height=height):
-        for i in range(len(data)):
-            max_stage_progress = data['progress'][i].split('%')[0]
-            if max_stage_progress.isnumeric():
-                max_stage_progress = int(max_stage_progress)
-            else:
-                max_stage_progress = 100
-            
-            # set up dictionary with progress
-            student_progress = {
-                'student_id': str(data['student_id'][i]),
-                'student_name': data['name'][i] if 'name' in data.columns else data['username'][i],
-                'total_points': f"{data['total_score'][i]}/{data['out_of_possible'][i]}",
-                'number_of_stages': 6,
-                'current_stage': int(data['max_stage_index'][i]),
-                'current_stage_progress': max_stage_progress,
-                'percent_complete': data['percent_story_complete'][i]
-            }
+        for student_id_value in student_ids:
+            student_entry = data.get(student_id_value, {})
+            progress_dict = student_entry.get('progress_dict', {})
+            step_progress = {}
+            for stage in progress_dict.values():
+                stage_index = stage.get('index')
+                if stage_index is None:
+                    continue
+                step_progress[int(stage_index)] = stage.get('progress')
+            for stage_index in stage_order:
+                step_progress.setdefault(stage_index, 0)
 
+            total_score = student_entry.get('total_score')
+            out_of_possible = student_entry.get('out_of_possible')
+            total_points = f"{total_score}/{out_of_possible}" if total_score is not None else "0/0"
+
+            student_name = student_entry.get('student_name')
+            if not student_name:
+                student_name = f"Student {student_id_value}"
+
+            student_progress = {
+                'student_id': student_id_value,
+                'student_name': student_name,
+                'total_points': total_points,
+                'percent_complete': student_entry.get('percent_complete', 0),
+                'step_progress': step_progress,
+            }
             StudentProgressRow(progress = student_progress,
                                 selected_id = student_id,
                                 on_selected_id = on_student_id_wrapper,
+                                step_order = stage_order,
                                 )
-
-

@@ -38,7 +38,6 @@ def initStudentID(student_id, roster):
 
 @solara.component
 def Dashboard(roster: Reactive[Roster] | Roster, student_names = None, add_names = False): 
-    logger.info(" ========= dashboard component =========")
     roster = solara.use_reactive(roster)
     are_names_set = solara.use_reactive(add_names)
     
@@ -63,7 +62,7 @@ def Dashboard(roster: Reactive[Roster] | Roster, student_names = None, add_names
     sub_tab_index = solara.use_reactive(0)
     def on_sid_set(value):
         if value is not None:
-            logger.info(f"Setting student_id to {value}")
+            logger.debug(f"Setting student_id to {value}")
             show_student_tab.set(1)
     student_id = solara.use_reactive(None, on_change=print_function_name(on_sid_set))
     
@@ -81,7 +80,9 @@ def Dashboard(roster: Reactive[Roster] | Roster, student_names = None, add_names
     initStudentID(student_id, roster)
 
     # ClassProgress(df, roster)
-    labels = ['Stage 1: </br> Velocities', 
+    labels = [
+              'Stage 0: </br> Introduction', 
+              'Stage 1: </br> Velocities', 
               'Stage 2: </br> Distance Intro', 
               'Stage 3: </br> Distances',
               'Stage 4: </br> Universe Age',
@@ -89,13 +90,20 @@ def Dashboard(roster: Reactive[Roster] | Roster, student_names = None, add_names
               'Stage 6: </br> Professional Data'
               ]
     
-    stage_titles = ['Velocities', 
+    stage_titles = [
+              'Introduction', 
+              'Velocities', 
               'Distance Intro', 
               'Distances',
               'Universe Age',
               'Uncertainties',
               'Professional Data'
               ]
+              
+    include_intro = roster.value.state_version == 'monorepo'
+    if not include_intro:
+        labels = labels[1:]
+        stage_titles = stage_titles[1:]
     
     with solara.GridFixed(columns=1, row_gap='10px', justify_items='stretch', align_items='start'):
         with solara.Card(elevation=4):

@@ -5,6 +5,12 @@ from .types import ProcessedStage, ProcessedMCScore, StateInterface
 
 from ..logger_setup import logger
 
+def _safeInt(value: Any) -> Union[int, None]:
+    try:
+        return int(value)
+    except:
+        return None
+
 class State(StateInterface):
     # markers = markers
     
@@ -17,7 +23,7 @@ class State(StateInterface):
         self.responses: Dict[str, Dict[str, str]] = story_state.get('responses',{})
         self.mc_scoring: Dict[str, Dict[str, ProcessedMCScore]] = story_state.get('mc_scoring',{}) # dict_keys(['1', '3', '4', '5', '6'])
         self.has_best_fit_galaxy = story_state.get('has_best_fit_galaxy',False) # bool
-        self.student_id = story_state.get('student_id',None) # string
+        self.student_id = _safeInt(story_state.get('student_id',None))
         self.stage_map: Dict[int, str] = {v['index']: k for k, v in self.stages.items()}
         self.last_route = story_state.get('last_route','')  
     
@@ -28,12 +34,15 @@ class State(StateInterface):
                 possible_score += 10
         return possible_score
     
+    def _error(self, message: str) -> None:
+        logger.error(f"Student ID: {self.student_id} {message}")
+    
     def get_stage_score(self, stage) -> tuple[int, int]:
         score = 0
         possible_score = 0
         if str(stage) not in self.mc_scoring:
             return score, possible_score
-        
+
         for key, value in self.mc_scoring[str(stage)].items():
             if value is None:
                 score += 0
@@ -87,6 +96,22 @@ class State(StateInterface):
         string_fmt = f"{frac:.0%} through Stage {stage_name}"
             
         return {'string': string_fmt, 'value':frac or nan}
+
+    @property
+    def progress_dict(self) -> Dict[str, Dict[str, Union[str, float, int, None]]]:
+        progress: Dict[str, Dict[str, Union[str, float, int, None]]] = {}
+        for stage_name, stage_state in self.stages.items():
+            stage_index = stage_state.get('index')
+            if stage_index is None:
+                stage_index = self.stage_name_to_index(stage_name)
+            frac = self.stage_fraction_completed(stage_name)
+            progress[stage_name] = {
+                'name': stage_name,
+                'index': stage_index,
+                'progress': frac,
+            }
+
+        return progress
     
     @property
     def stage_index(self) -> int:
@@ -96,16 +121,18 @@ class State(StateInterface):
     
     def stage_fraction_completed(self, stage_name: str) -> Optional[float]:
         if stage_name is None:
+            self._error("stage_fraction_completed called with None stage_name")
             return None
         
         if stage_name not in self.stages:
-            logger.debug(f"Stage {stage_name} not in stages")
+            self._error(f"Stage {stage_name} not in stages")
             return None
         
         if stage_name in self.stages.keys():
             if 'progress' in self.stages[stage_name]:
                 return self.stages[stage_name]['progress']
             else:
+                self._error(f"Stage {stage_name} has no progress key")
                 return 0.0
         
     def total_fraction_completed(self) -> Dict[str, Union[float, int]]:
@@ -115,6 +142,7 @@ class State(StateInterface):
         for k, _ in self.stages.items():
             frac = self.stage_fraction_completed(k)
             if frac is None:
+                self._error(f"Stage {k} fraction completed is None, treating as 1.0")
                 frac = 1.0
             current.append(frac)
             total.append(1.0)
@@ -183,6 +211,17 @@ class MonoRepoState(State):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
     
+    @property
+    def story_score(self) -> int:
+        # For MonoRepoState, mc_scoring keys are numeric indices (e.g., '0', '1'),
+        # not stage names, so we need to use stage indices for lookup
+        total = 0
+        for stage_name in self.stages.keys():
+            stage_index = self.stages[stage_name].get('index', None)
+            if stage_index is not None:
+                score, _ = self.get_stage_score(stage_index)
+                total += score
+        return total
 
     @property
     def max_stage_index(self) -> int:

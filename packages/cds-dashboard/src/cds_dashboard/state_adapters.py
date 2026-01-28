@@ -23,7 +23,7 @@ class StateAdapter(Protocol):
     query: QueryCosmicDSApi
    
     def transform_roster(self, api_roster: List[Any]) -> List[OldRosterEntry]: ...
-    def get_class_measurements(self, roster: List[OldRosterEntry]) -> Dict[str, List[Any]]: ...
+    def get_class_measurements(self, roster: List[OldRosterEntry], exclude_merged: bool) -> Dict[str, List[Any]]: ...
     def get_student_measurements(self, roster: List[OldRosterEntry], student_id: int) -> List[Dict[str, Any]]: ...
     @property
     def version_name(self) -> str: ...
@@ -45,10 +45,10 @@ class LegacyStateAdapter(StateAdapter):
         result = cast(List[OldRosterEntry], api_roster)
         return result
     
-    def get_class_measurements(self, roster: List[OldRosterEntry]) -> Dict[str, List[Any]]:
+    def get_class_measurements(self, roster: List[OldRosterEntry], exclude_merged: bool = False) -> Dict[str, List[Any]]:
         """Get all measurements for the class. Uses API call for legacy format."""
 
-        res = self.query.get_class_data(class_id=self.query.class_id)
+        res = self.query.get_class_data(class_id=self.query.class_id, exclude_merged=exclude_merged)
         if res is None or res == {} or len(res) == 0:
             res = {'student_id': []}
         return res if res is not None else {'student_id': []}
@@ -155,10 +155,10 @@ class OldSolaraStateAdapter(StateAdapter):
                 logger.error(f"OldSolaraStateAdapter: Failed to fetch stages for student {student_id}: {e}")
                 entry['story_state']['stages'] = {}  # type: ignore
     
-    def get_class_measurements(self, roster: List[OldRosterEntry]) -> Dict[str, List[Any]]:
+    def get_class_measurements(self, roster: List[OldRosterEntry], exclude_merged=False) -> Dict[str, List[Any]]:
         """Get all measurements for the class. Uses API call for Solara format."""
 
-        res = self.query.get_class_data(class_id=self.query.class_id)
+        res = self.query.get_class_data(class_id=self.query.class_id, exclude_merged=exclude_merged)
         if res is None or res == {} or len(res) == 0:
             res = {'student_id': []}
         return res if res is not None else {'student_id': []}
@@ -196,15 +196,14 @@ class MonorepoStateAdapter(StateAdapter):
         for student in api_roster:
             transformed = self._transform_student_entry(student)
             result.append(transformed)
-        
         return result
     
     def fix_progress(self, stage: Dict):
-        max_step = stage['max_step']
-        total_steps = stage['total_steps']
-        progress = (max_step - 1) / total_steps
-        stage['progress'] = progress
-        return progress
+        """
+        In the monorepo format, the progress is already 
+        calculated by the Stage and stored in the database.
+        """
+        return stage['progress']
     
     
     def fix_stages(self, stage_states: Dict):
@@ -265,52 +264,35 @@ class MonorepoStateAdapter(StateAdapter):
                     measurement['last_modified'] = last_modified
         
         stage_states = self.fix_stages(story_state.pop('stage_states'))
+        # check if student_id is in the story_state
+        if 'student_id' not in story_state:
+            story_state['student_id'] = student_id
         student['app_state'] = app
         student['story_state'] = story_state
         student['story_state']['mc_scoring'] = self.get_multiple_choice(stage_states)
         student['story_state']['responses'] = self.get_free_responses(stage_states)
         student['story_state']['stages'] = stage_states
-        
+        if ('stage_5_class_data_students' in story_state and len(story_state['stage_5_class_data_students']) > 0):
+            student['story_state']['class_data_students'] = story_state['stage_5_class_data_students']
+        elif ('stage_4_class_data_students' in story_state and len(story_state['stage_4_class_data_students']) > 0):
+            student['story_state']['class_data_students'] = story_state['stage_4_class_data_students']
+        else:
+            pass
         return student
     
-    def get_class_measurements(self, roster: List[OldRosterEntry]) -> Dict[str, List[Any]]:
-        """
-        Get all measurements for the class from the roster.
-        For monorepo, measurements are already in the roster data.
-        """
-        result: Dict[str, List[Any]] = {}
-        
-        for idx, student in enumerate(roster):
-            student_id = student['student_id']
-            measurements = student.get('story_state', {}).get('measurements', [])
-            
-            # Add each measurement to the result dict
-            for measurement in measurements:
-                if measurement is None:
-                    continue  # Skip None measurements
-                if not isinstance(measurement, dict):
-                    logger.warning(f"Student {student_id}: Skipping non-dict measurement: {type(measurement)}")
-                    continue
-                for key, value in measurement.items():
-                    if key not in result:
-                        result[key] = []
-                    result[key].append(value)
-        
-        if len(result) == 0:
-            result = {'student_id': []}
-        
-        return result
+    def get_class_measurements(self, roster: List[OldRosterEntry], exclude_merged=False) -> Dict[str, List[Any]]:
+        """Get all measurements for the class. Uses API call for Solara format."""
+
+        res = self.query.get_class_data(class_id=self.query.class_id, exclude_merged=exclude_merged)
+        if res is None or res == {} or len(res) == 0:
+            res = {'student_id': []}
+        return res if res is not None else {'student_id': []}
     
     def get_student_measurements(self, roster: List[OldRosterEntry], student_id: int) -> List[Dict[str, Any]]:
-        """
-        Get measurements for a specific student from the roster.
-        For monorepo, measurements are already in the roster data.
-        """
-        for student in roster:
-            if student['student_id'] == student_id:
-                return student.get('story_state', {}).get('measurements', [])
-        
-        return []
+        """Get measurements for a specific student. Uses API call for Solara format."""
+
+        result = self.query.get_student_data(student_id)
+        return result.get('measurements', []) if result else []
     
     @property
     def version_name(self) -> str:
@@ -354,11 +336,11 @@ class StateAdapterFactory(StateAdapter):
         self._adapter = self.get_adapter(api_roster, self.class_id)
         return self._adapter.transform_roster(api_roster)
     
-    def get_class_measurements(self, roster: List[OldRosterEntry]) -> Dict[str, List[Any]]:
+    def get_class_measurements(self, roster: List[OldRosterEntry], exclude_merged: bool = False) -> Dict[str, List[Any]]:
         """Delegate to the underlying adapter."""
         if self._adapter is None:
             raise ValueError("Adapter not initialized. Call transform_roster first.")
-        return self._adapter.get_class_measurements(roster)
+        return self._adapter.get_class_measurements(roster, exclude_merged=exclude_merged)
     
     def get_student_measurements(self, roster: List[OldRosterEntry], student_id: int) -> List[Dict[str, Any]]:
         """Delegate to the underlying adapter."""
