@@ -47,6 +47,19 @@ def FreeResponseQuestionResponseSummary(question_responses, question_text, names
     # solara.Select(label = "Question", values = values, value = selected_question, on_value = set_quest2)
     
     with rv.ExpansionPanels():
+        if len(question_responses) == 0:
+            with rv.ExpansionPanel():
+                with rv.ExpansionPanelHeader():
+                    solara.Markdown(f"**No student has reached this stage to answer a question.**")
+                with rv.ExpansionPanelContent():
+                    FreeResponseQuestion(question = "No answers available yet.", 
+                                        shortquestion = "",
+                                        responses = [],
+                                        names = names,
+                                        hideShortQuestion = True,
+                                        hideQuestion = hideQuestion,
+                                        hideResponses = hideResponses,
+                                        hideName = hideName)
         for selected_question in question_responses.keys():
             # set_selected_question(k)
             if selected_question is not None:
@@ -92,6 +105,7 @@ def FreeResponseSummary(roster: Reactive[Roster] | Roster, stage_labels=[]):
         stages = sorted(stages, key = roster.get_stage_index )
         
     all_nones = {}
+    questions_lengths = {}
     for stage in stages:
         question_responses = roster.l2d(fr_questions[stage]) # {'key': ['response1', 'response2',...]}
         try:
@@ -99,13 +113,15 @@ def FreeResponseSummary(roster: Reactive[Roster] | Roster, stage_labels=[]):
                 all([resp is None for resp in resp_list])
                 for resp_list in question_responses.values()
             ])
+            questions_lengths[stage] = lengths
+            print("===== Stage:", stage, "Lengths:", lengths)
             all_nones[stage] = all_none
         except:
             all_nones[stage] = False
     
     with solara.Columns([5, 1], style={"height": "100%"}):
         with solara.Column():
-            for stage in stages:
+            for stage in stages[-3:]:
                 if str(stage).isnumeric():
                     index = int(stage) - 1
                     label = stage_labels[index]
@@ -113,8 +129,8 @@ def FreeResponseSummary(roster: Reactive[Roster] | Roster, stage_labels=[]):
                     label = str(stage).replace('_', ' ').capitalize()
                 question_responses = roster.l2d(fr_questions[stage]) # {'key': ['response1', 'response2',...]}
                 
-                if all_nones[stage]:
-                    continue
+                # if all_nones[stage]:
+                #     continue
                 with rv.Container(id=f"fr-summary-stage-{stage}"):
                     if (roster.state_version == 'solara'):
                         solara.Markdown(f"### Stage: {label}")
@@ -124,9 +140,9 @@ def FreeResponseSummary(roster: Reactive[Roster] | Roster, stage_labels=[]):
         with solara.Column():
             with rv.NavigationDrawer(permanent=True, right=True, clipped=True):
                 with rv.List():
-                    for stage in stages:
-                        if all_nones[stage]:
-                            continue
+                    for stage in stages[-3:]:
+                        # if all_nones[stage]:
+                        #     continue
                         with rv.ListItem(link=True, href=f"#fr-summary-stage-{stage}"):
                             with rv.ListItemTitle():
                                 solara.Markdown(f"Stage {stage}")
@@ -160,12 +176,10 @@ def FreeResponseQuestionSingleStudent(roster: Reactive[Roster] | Roster, sid = N
         stages = filter(lambda x: x!='student_id', fr_questions.keys())
         stages = sorted(stages, key = roster.get_stage_index )
     
-    if len(fr_questions) == 0:
-        solara.Markdown("Student has not answered any free response questions yet.")
-    for k in stages:
+
+    for k in stages[-3:]:
         v = fr_questions[k]
-        if len(v) == 0:
-            continue
+        
         if str(k).isnumeric():
             index = int(k) - 1
             label = stage_labels[index]
@@ -175,6 +189,9 @@ def FreeResponseQuestionSingleStudent(roster: Reactive[Roster] | Roster, sid = N
             solara.Markdown(f"### Stage: {label}")
         else:
             solara.Markdown(f"### Stage {k}: {label}")
+        if len(v) == 0:
+            solara.Markdown("Student has not answered any free response questions yet.")
+            continue
         for qkey, qval in v.items():
             question = question_text[qkey]['text']
             shortquestion = question_text[qkey]['shorttext']
