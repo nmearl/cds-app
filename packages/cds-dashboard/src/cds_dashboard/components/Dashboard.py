@@ -117,10 +117,7 @@ def Dashboard(roster: Reactive[Roster] | Roster, student_names = None):
               'Professional Data'
               ]
               
-    include_intro = roster.value.state_version == 'monorepo'
-    if not include_intro:
-        labels = labels[1:]
-        stage_titles = stage_titles[1:]
+    
     
     with solara.GridFixed(columns=1, row_gap='10px', justify_items='stretch', align_items='start'):
         with solara.Card(elevation=4):
@@ -132,8 +129,15 @@ def Dashboard(roster: Reactive[Roster] | Roster, student_names = None):
                 StudentNameLoad(roster, internal_student_names, student_names_set=are_names_set)
                 DownloadReport(roster) 
             
-            StudentProgressTable(roster, student_id = student_id, stage_labels = labels, height='50vh')
-
+            include_intro = roster.value.state_version == 'monorepo'
+            plabels = labels
+            if not include_intro:
+                plabels = labels[1:]
+                pstage_titles = stage_titles[1:]
+            StudentProgressTable(roster, student_id = student_id, stage_labels = plabels, height='50vh')
+        
+        labels = labels[1:]
+        stage_titles = stage_titles[1:]
         with solara.Card(elevation=4):
             solara.Markdown(f"##Student Responses and Data")
 
