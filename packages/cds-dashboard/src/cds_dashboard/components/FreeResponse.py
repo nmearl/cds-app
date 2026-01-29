@@ -104,20 +104,6 @@ def FreeResponseSummary(roster: Reactive[Roster] | Roster, stage_labels=[]):
         stages = filter(lambda x: x!='student_id', fr_questions.keys())
         stages = sorted(stages, key = roster.get_stage_index )
         
-    all_nones = {}
-    questions_lengths = {}
-    for stage in stages:
-        question_responses = roster.l2d(fr_questions[stage]) # {'key': ['response1', 'response2',...]}
-        try:
-            all_none = all([
-                all([resp is None for resp in resp_list])
-                for resp_list in question_responses.values()
-            ])
-            questions_lengths[stage] = lengths
-            print("===== Stage:", stage, "Lengths:", lengths)
-            all_nones[stage] = all_none
-        except:
-            all_nones[stage] = False
     
     with solara.Columns([5, 1], style={"height": "100%"}):
         with solara.Column():
@@ -128,9 +114,6 @@ def FreeResponseSummary(roster: Reactive[Roster] | Roster, stage_labels=[]):
                 else:
                     label = str(stage).replace('_', ' ').capitalize()
                 question_responses = roster.l2d(fr_questions[stage]) # {'key': ['response1', 'response2',...]}
-                
-                # if all_nones[stage]:
-                #     continue
                 with rv.Container(id=f"fr-summary-stage-{stage}"):
                     if (roster.state_version == 'solara'):
                         solara.Markdown(f"### Stage: {label}")
@@ -141,8 +124,6 @@ def FreeResponseSummary(roster: Reactive[Roster] | Roster, stage_labels=[]):
             with rv.NavigationDrawer(permanent=True, right=True, clipped=True):
                 with rv.List():
                     for stage in stages[-3:]:
-                        # if all_nones[stage]:
-                        #     continue
                         with rv.ListItem(link=True, href=f"#fr-summary-stage-{stage}"):
                             with rv.ListItemTitle():
                                 solara.Markdown(f"Stage {stage}")
