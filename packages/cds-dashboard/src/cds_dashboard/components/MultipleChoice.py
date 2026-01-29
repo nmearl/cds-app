@@ -8,7 +8,7 @@ from numpy import atleast_1d
 from ..cds_api_utils.Query import QueryCosmicDSApi as Query
 import plotly.express as px
 from .Collapsible import Collapsible
-
+from numpy import mean
 from .TableComponents import DataTable
 
 from numpy import hstack, around
@@ -216,16 +216,18 @@ def MultipleChoiceQuestionSingleStage(roster: Reactive[Roster] | Roster, df = No
             return '--'
         return str(round(top/bot,2))
     
-    avg_tries = df.tries.aggregate(avg)
-    
+    avg_tries = mean(atleast_1d(df.tries.aggregate(avg).astype(float).to_numpy()))
+
 
     with solara.Row():
-        solara.Markdown("""
-                        ### Stage {}: {}
-                        - Completed {} out of {} multiple choice questions
-                        - Multiple Choice Score: {}/{}
-                        - Took on average {} tries to complete the multiple choice questions
-                        """.format('' if (roster.state_version == 'solara') else stage, label,  completed, total, points, total_points, avg_tries))    
+        lines = [
+            '### Stage {}: {}'.format('' if (roster.state_version == 'solara') else stage, label),
+            '- Completed {} out of {} multiple choice questions'.format(completed, total),
+            '- Multiple Choice Score: {}/{}'.format(points, total_points),
+            '- Took on average {} tries to complete the multiple choice questions'.format(avg_tries)
+        ]
+        
+        solara.Markdown('\n'.join(lines))
         
     with solara.Row():
         with solara.Columns([1,1]):
