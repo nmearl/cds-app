@@ -47,6 +47,19 @@ def FreeResponseQuestionResponseSummary(question_responses, question_text, names
     # solara.Select(label = "Question", values = values, value = selected_question, on_value = set_quest2)
     
     with rv.ExpansionPanels():
+        if len(question_responses) == 0:
+            with rv.ExpansionPanel():
+                with rv.ExpansionPanelHeader():
+                    solara.Markdown(f"**No responses have been recorded yet.**")
+                with rv.ExpansionPanelContent():
+                    FreeResponseQuestion(question = "", 
+                                        shortquestion = "",
+                                        responses = [],
+                                        names = names,
+                                        hideShortQuestion = True,
+                                        hideQuestion = hideQuestion,
+                                        hideResponses = hideResponses,
+                                        hideName = hideName)
         for selected_question in question_responses.keys():
             # set_selected_question(k)
             if selected_question is not None:
@@ -84,17 +97,18 @@ def FreeResponseSummary(roster: Reactive[Roster] | Roster, stage_labels=[]):
     question_text = roster.question_keys() # {'key': {'text': 'question text', 'shorttext': 'short question text'}}
     
     if not (roster.state_version == 'solara'):
-        stages = list(filter(lambda s: s.isdigit(),sorted(fr_questions.keys())))
+        # stages = list(filter(lambda s: s.isdigit(),sorted(fr_questions.keys())))
+        stages = list(map(str,range(1, len(stage_labels)+1)))
         if len(stages) == 0:
             stages = list(filter(lambda s: s != 'student_id',fr_questions.keys()))
     else:
         stages = filter(lambda x: x!='student_id', fr_questions.keys())
         stages = sorted(stages, key = roster.get_stage_index )
         
-
+    
     with solara.Columns([5, 1], style={"height": "100%"}):
         with solara.Column():
-            for stage in stages:
+            for stage in stages[-3:]:
                 if str(stage).isnumeric():
                     index = int(stage) - 1
                     label = stage_labels[index]
@@ -110,7 +124,7 @@ def FreeResponseSummary(roster: Reactive[Roster] | Roster, stage_labels=[]):
         with solara.Column():
             with rv.NavigationDrawer(permanent=True, right=True, clipped=True):
                 with rv.List():
-                    for stage in stages:
+                    for stage in stages[-3:]:
                         with rv.ListItem(link=True, href=f"#fr-summary-stage-{stage}"):
                             with rv.ListItemTitle():
                                 solara.Markdown(f"Stage {stage}")
@@ -136,10 +150,19 @@ def FreeResponseQuestionSingleStudent(roster: Reactive[Roster] | Roster, sid = N
 
     question_text = roster.question_keys() # {'key': {'text': 'question text', 'shorttext': 'short question text', nicetag: 'nicetag'}}
     
+    if not (roster.state_version == 'solara'):
+        # stages = list(filter(lambda s: s.isdigit(),sorted(fr_questions.keys())))
+        stages = list(map(str,range(1, len(stage_labels)+1)))
+        if len(stages) == 0:
+            stages = list(filter(lambda s: s != 'student_id',fr_questions.keys()))
+    else:
+        stages = filter(lambda x: x!='student_id', fr_questions.keys())
+        stages = sorted(stages, key = roster.get_stage_index )
     
-    if len(fr_questions) == 0:
-        solara.Markdown("Student has not answered any free response questions yet.")
-    for k, v in fr_questions.items():
+
+    for k in stages[-3:]:
+        v = fr_questions[k]
+        
         if str(k).isnumeric():
             index = int(k) - 1
             label = stage_labels[index]
@@ -149,6 +172,9 @@ def FreeResponseQuestionSingleStudent(roster: Reactive[Roster] | Roster, sid = N
             solara.Markdown(f"### Stage: {label}")
         else:
             solara.Markdown(f"### Stage {k}: {label}")
+        if len(v) == 0:
+            solara.Markdown("No responses have been recorded yet.")
+            continue
         for qkey, qval in v.items():
             question = question_text[qkey]['text']
             shortquestion = question_text[qkey]['shorttext']
