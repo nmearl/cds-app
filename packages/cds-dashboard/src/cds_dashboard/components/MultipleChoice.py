@@ -154,7 +154,8 @@ def MultipleChoiceSummary(roster: Reactive[Roster] | Roster, stage_labels=[]):
     
     # mc_responses is a dict that looks like {'1': [{q1: {tries:0, choice: 0, score: 0}...}..]}
     if not (roster.state_version == 'solara'):
-        stages = list(filter(lambda s: s.isdigit(),sorted(list(sorted(mc_responses.keys())))))
+        # stages = list(filter(lambda s: s.isdigit(),sorted(list(sorted(mc_responses.keys())))))
+        stages = list(map(str,range(1, len(stage_labels)+1)))
         if len(stages) == 0:
             stages = list(filter(lambda s: s != 'student_id',mc_responses.keys()))
     else:
@@ -268,7 +269,8 @@ def MultipleChoiceQuestionSingleStudent(roster: Reactive[Roster] | Roster, sid =
     mc_keys = roster.mc_question_keys()
     
     if not (roster.state_version == 'solara'):
-        stages = list(filter(lambda s: s.isdigit(),sorted(list(sorted(mc_questions.keys())))))
+        # stages = list(filter(lambda s: s.isdigit(),sorted(list(sorted(mc_questions.keys())))))
+        stages = list(map(str,range(1, len(stage_labels)+1)))
         if len(stages) == 0:
             stages = list(filter(lambda s: s != 'student_id',mc_questions.keys()))
     else:

@@ -97,7 +97,8 @@ def FreeResponseSummary(roster: Reactive[Roster] | Roster, stage_labels=[]):
     question_text = roster.question_keys() # {'key': {'text': 'question text', 'shorttext': 'short question text'}}
     
     if not (roster.state_version == 'solara'):
-        stages = list(filter(lambda s: s.isdigit(),sorted(fr_questions.keys())))
+        # stages = list(filter(lambda s: s.isdigit(),sorted(fr_questions.keys())))
+        stages = list(map(str,range(1, len(stage_labels)+1)))
         if len(stages) == 0:
             stages = list(filter(lambda s: s != 'student_id',fr_questions.keys()))
     else:
@@ -150,7 +151,8 @@ def FreeResponseQuestionSingleStudent(roster: Reactive[Roster] | Roster, sid = N
     question_text = roster.question_keys() # {'key': {'text': 'question text', 'shorttext': 'short question text', nicetag: 'nicetag'}}
     
     if not (roster.state_version == 'solara'):
-        stages = list(filter(lambda s: s.isdigit(),sorted(fr_questions.keys())))
+        # stages = list(filter(lambda s: s.isdigit(),sorted(fr_questions.keys())))
+        stages = list(map(str,range(1, len(stage_labels)+1)))
         if len(stages) == 0:
             stages = list(filter(lambda s: s != 'student_id',fr_questions.keys()))
     else:
