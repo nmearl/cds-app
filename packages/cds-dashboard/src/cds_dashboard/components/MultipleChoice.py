@@ -33,7 +33,14 @@ def MultipleChoiceStageSummary(roster: Reactive[Roster] | Roster, stage = None, 
     
     mc_responses = roster.multiple_choice_questions()
 
-    
+    if stage not in mc_responses:
+        if (roster.state_version == 'solara'):
+            solara.Markdown(f"### Stage: {label}")
+        else:
+            solara.Markdown(f"### Stage {stage}: {label}")
+        solara.Markdown("There are no completed multiple choice questions for this stage.")
+        return
+        
 
     flat_mc_responses = {}
     q = roster.l2d(mc_responses[stage],fill_val={})
@@ -55,7 +62,7 @@ def MultipleChoiceStageSummary(roster: Reactive[Roster] | Roster, stage = None, 
             flat_mc_responses[k]['tries'] = [None] * len(roster.student_ids)
             flat_mc_responses[k]['choice'] = [None] * len(roster.student_ids)
             flat_mc_responses[k]['score'] = [None] * len(roster.student_ids)
-    import pandas as pd
+
     summary_stats = DataFrame(flat_mc_responses).T
     tries = summary_stats['tries']
     # N = tries.aggregate(len)
@@ -153,6 +160,9 @@ def MultipleChoiceSummary(roster: Reactive[Roster] | Roster, stage_labels=[]):
     else:
         stages = filter(lambda x: x!='student_id', mc_responses.keys())
         stages = sorted(stages, key = roster.get_stage_index )
+    if len(stages) == 0:
+        solara.Markdown("There are no completed multiple choice questions.")
+        stages = range(1, len(stage_labels)+1)
     
     for stage in stages:
         if str(stage).isnumeric():
@@ -265,10 +275,13 @@ def MultipleChoiceQuestionSingleStudent(roster: Reactive[Roster] | Roster, sid =
     else:
         stages = filter(lambda x: x!='student_id', mc_questions.keys())
         stages = sorted(stages, key = roster.get_stage_index )
+    if len(stages) == 0:
+        solara.Markdown("Student has not completed any multiple choice questions yet")
+        stages = range(1, len(stage_labels)+1)
     
     dflist = []
     for stage in stages: 
-        v = mc_questions[stage]
+        
         # index = int(stage) - 1
         # label = stage_labels[index]
         if str(stage).isnumeric():
@@ -276,7 +289,12 @@ def MultipleChoiceQuestionSingleStudent(roster: Reactive[Roster] | Roster, sid =
             label = stage_labels[index]
         else:
             label = str(stage).replace('_', ' ').capitalize()
+        if stage not in mc_questions:
+            solara.Markdown(f"### Stage {stage}: {label}")
+            solara.Markdown("There are no completed multiple choice questions for this stage.")
+            continue
         
+        v = mc_questions[stage]
         for k in mc_keys[stage]:
             if k not in v.keys():
                 v[k] = {'tries': None, 'choice': None, 'score': None}
