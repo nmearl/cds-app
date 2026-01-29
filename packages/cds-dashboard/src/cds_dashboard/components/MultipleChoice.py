@@ -256,8 +256,17 @@ def MultipleChoiceQuestionSingleStudent(roster: Reactive[Roster] | Roster, sid =
     
     mc_keys = roster.mc_question_keys()
     
+    if not (roster.state_version == 'solara'):
+        stages = list(filter(lambda s: s.isdigit(),sorted(list(sorted(mc_questions.keys())))))
+        if len(stages) == 0:
+            stages = list(filter(lambda s: s != 'student_id',mc_questions.keys()))
+    else:
+        stages = filter(lambda x: x!='student_id', mc_questions.keys())
+        stages = sorted(stages, key = roster.get_stage_index )
+    
     dflist = []
-    for stage, v in mc_questions.items():
+    for stage in stages: 
+        v = mc_questions[stage]
         # index = int(stage) - 1
         # label = stage_labels[index]
         if str(stage).isnumeric():

@@ -152,10 +152,20 @@ def FreeResponseQuestionSingleStudent(roster: Reactive[Roster] | Roster, sid = N
 
     question_text = roster.question_keys() # {'key': {'text': 'question text', 'shorttext': 'short question text', nicetag: 'nicetag'}}
     
+    if not (roster.state_version == 'solara'):
+        stages = list(filter(lambda s: s.isdigit(),sorted(fr_questions.keys())))
+        if len(stages) == 0:
+            stages = list(filter(lambda s: s != 'student_id',fr_questions.keys()))
+    else:
+        stages = filter(lambda x: x!='student_id', fr_questions.keys())
+        stages = sorted(stages, key = roster.get_stage_index )
     
     if len(fr_questions) == 0:
         solara.Markdown("Student has not answered any free response questions yet.")
-    for k, v in fr_questions.items():
+    for k in stages:
+        v = fr_questions[k]
+        if len(v) == 0:
+            continue
         if str(k).isnumeric():
             index = int(k) - 1
             label = stage_labels[index]
