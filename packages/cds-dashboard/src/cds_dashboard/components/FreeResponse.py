@@ -50,9 +50,9 @@ def FreeResponseQuestionResponseSummary(question_responses, question_text, names
         if len(question_responses) == 0:
             with rv.ExpansionPanel():
                 with rv.ExpansionPanelHeader():
-                    solara.Markdown(f"**No student has reached this stage to answer a question.**")
+                    solara.Markdown(f"**No responses have been recorded yet.**")
                 with rv.ExpansionPanelContent():
-                    FreeResponseQuestion(question = "No answers available yet.", 
+                    FreeResponseQuestion(question = "", 
                                         shortquestion = "",
                                         responses = [],
                                         names = names,
@@ -171,7 +171,7 @@ def FreeResponseQuestionSingleStudent(roster: Reactive[Roster] | Roster, sid = N
         else:
             solara.Markdown(f"### Stage {k}: {label}")
         if len(v) == 0:
-            solara.Markdown("Student has not answered any free response questions yet.")
+            solara.Markdown("No responses have been recorded yet.")
             continue
         for qkey, qval in v.items():
             question = question_text[qkey]['text']

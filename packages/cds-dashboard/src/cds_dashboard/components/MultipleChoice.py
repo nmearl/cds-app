@@ -38,7 +38,7 @@ def MultipleChoiceStageSummary(roster: Reactive[Roster] | Roster, stage = None, 
             solara.Markdown(f"### Stage: {label}")
         else:
             solara.Markdown(f"### Stage {stage}: {label}")
-        solara.Markdown("There are no completed multiple choice questions for this stage.")
+        solara.Markdown("**No responses have been recorded yet.**")
         return
         
 
@@ -161,7 +161,6 @@ def MultipleChoiceSummary(roster: Reactive[Roster] | Roster, stage_labels=[]):
         stages = filter(lambda x: x!='student_id', mc_responses.keys())
         stages = sorted(stages, key = roster.get_stage_index )
     if len(stages) == 0:
-        solara.Markdown("There are no completed multiple choice questions.")
         stages = range(1, len(stage_labels)+1)
     
     for stage in stages:
@@ -185,7 +184,7 @@ def MultipleChoiceQuestionSingleStage(roster: Reactive[Roster] | Roster, df = No
 
     
     if df is None:
-        solara.Markdown("There are no completed multiple choice questions for this stage")
+        solara.Markdown("**No responses have been recorded yet.**")
         return
     
     if isinstance(df, solara.Reactive):
@@ -276,7 +275,6 @@ def MultipleChoiceQuestionSingleStudent(roster: Reactive[Roster] | Roster, sid =
         stages = filter(lambda x: x!='student_id', mc_questions.keys())
         stages = sorted(stages, key = roster.get_stage_index )
     if len(stages) == 0:
-        solara.Markdown("Student has not completed any multiple choice questions yet")
         stages = range(1, len(stage_labels)+1)
     
     dflist = []
@@ -291,7 +289,7 @@ def MultipleChoiceQuestionSingleStudent(roster: Reactive[Roster] | Roster, sid =
             label = str(stage).replace('_', ' ').capitalize()
         if stage not in mc_questions:
             solara.Markdown(f"### Stage {stage}: {label}")
-            solara.Markdown("There are no completed multiple choice questions for this stage.")
+            solara.Markdown("No responses have been recorded yet.")
             continue
         
         v = mc_questions[stage]
