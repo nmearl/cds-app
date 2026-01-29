@@ -206,7 +206,7 @@ class MonorepoStateAdapter(StateAdapter):
         return stage['progress']
     
     
-    def fix_stages(self, stage_states: Dict):
+    def fix_stages(self, stage_states: Dict, max_stage_progress: int):
         stage_map = {
             'introduction' : '0',
             'spectra_&_velocity': '1',
@@ -218,7 +218,8 @@ class MonorepoStateAdapter(StateAdapter):
         }
         for key, value in stage_states.items():
             stage_states[key]['index'] = int(stage_map[key])
-            stage_states[key]['progress'] = self.fix_progress(value)
+            set_to_zero = (max_stage_progress is not None) or (max_stage_progress is not None and int(stage_map[key]) > max_stage_progress)
+            stage_states[key]['progress'] = 0 if set_to_zero else self.fix_progress(value)
             stage_states[key]['state'] = value
         return stage_states
 
@@ -254,7 +255,7 @@ class MonorepoStateAdapter(StateAdapter):
         
         app = student.pop('story_state').pop('app')
         story_state = app.pop('story_state')
-        
+        max_stage_progress = story_state.get('max_stage_progress', None)
         # Check if measurements exist and inject last_modified
         measurements = story_state.get('measurements', None)
         if measurements is not None and last_modified is not None:
@@ -263,7 +264,7 @@ class MonorepoStateAdapter(StateAdapter):
                 if isinstance(measurement, dict):
                     measurement['last_modified'] = last_modified
         
-        stage_states = self.fix_stages(story_state.pop('stage_states'))
+        stage_states = self.fix_stages(story_state.pop('stage_states'), max_stage_progress)
         # check if student_id is in the story_state
         if 'student_id' not in story_state:
             story_state['student_id'] = student_id
