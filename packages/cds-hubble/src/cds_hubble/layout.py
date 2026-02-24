@@ -1,7 +1,7 @@
 import time
 
 import solara
-from deepdiff import DeepDiff
+import os
 from solara import Reactive
 from solara.lab import Ref
 from solara_enterprise import auth
@@ -14,6 +14,8 @@ from .story_state import StoryState
 from .utils import push_to_route, extract_changed_subtree
 
 logger = setup_logger("LAYOUT")
+
+FORCE_DEMO = os.getenv("CDS_FORCE_DEMO", "false").strip().lower() == "true"
 
 
 def _load_state(
@@ -78,7 +80,12 @@ def Layout(
     app_state: Reactive[AppState] = None,
     story_state: Reactive[StoryState] = None,
 ):
-    BaseSetup(remote_api=LOCAL_API, global_state=app_state, local_state=story_state)
+    BaseSetup(
+        remote_api=LOCAL_API,
+        global_state=app_state,
+        local_state=story_state,
+        force_demo=FORCE_DEMO,
+    )
 
     initial_state_loaded = solara.use_reactive(False)
 
