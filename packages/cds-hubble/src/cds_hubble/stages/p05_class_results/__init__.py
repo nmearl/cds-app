@@ -171,14 +171,16 @@ def Page(app_state: Reactive[AppState]):
         if not story_state.value.measurements_loaded:
             LOCAL_API.get_measurements(app_state, story_state)
 
-        class_measurements = LOCAL_API.get_class_measurements(app_state, story_state)
+        student_ids = Ref(story_state.fields.stage_5_class_data_students)
+        ids = student_ids.value or None
+        class_measurements = LOCAL_API.get_class_measurements(app_state, story_state, ids)
+
         # if we are a teacher then our measurements were not loaded with class_measurements and only exist on the front end in local_state.value.measuements
         #  make sure we add these to the class_measurements
         if (not app_state.value.update_db) and len(story_state.value.measurements) > 0:
             class_measurements.extend(m for m in story_state.value.measurements)
 
         measurements = Ref(story_state.fields.class_measurements)
-        student_ids = Ref(story_state.fields.stage_5_class_data_students)
         if class_measurements and not student_ids.value:
             ids = list(np.unique([m.student_id for m in class_measurements]))
             student_ids.set(ids)
@@ -238,9 +240,7 @@ def Page(app_state: Reactive[AppState]):
         class_ids = story_state.value.stage_5_class_data_students
         if (not app_state.value.update_db) and len(story_state.value.measurements) > 0:
             class_ids.append([m.student_id for m in story_state.value.measurements][0])
-        class_data_points = [
-            m for m in story_state.value.class_measurements if m.student_id in class_ids
-        ]
+        class_data_points = story_state.value.class_measurements
         class_data = models_to_glue_data(class_data_points, label="Class Data")
         class_data = app_state.value.add_or_update_data(class_data)
 

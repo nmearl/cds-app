@@ -335,12 +335,16 @@ class LocalAPI(BaseAPI):
         self,
         global_state: Reactive[AppState],
         local_state: Reactive[StoryState],
+        student_ids: Optional[List[int]] = None,
     ) -> list[StudentMeasurement]:
+
         url = (
-            f"{self.API_URL}/{local_state.value.story_id}/class-measurements/"
+            f"{self.api_url}/{local_state.value.story_id}/class-measurements/"
             f"{global_state.value.student.id}/{global_state.value.classroom.class_info['id']}"
             f"?complete_only=true"
         )
+        if student_ids:
+            url += f"&student_ids={''.join([str(x) for x in student_ids])}"
         r = self.request_session.get(url)
         measurement_json = r.json()
 
