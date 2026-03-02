@@ -339,7 +339,7 @@ class LocalAPI(BaseAPI):
     ) -> list[StudentMeasurement]:
 
         url = (
-            f"{self.api_url}/{local_state.value.story_id}/class-measurements/"
+            f"{self.API_URL}/{local_state.value.story_id}/class-measurements/"
             f"{global_state.value.student.id}/{global_state.value.classroom.class_info['id']}"
             f"?complete_only=true"
         )
