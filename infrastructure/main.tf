@@ -779,6 +779,7 @@ resource "aws_ecs_task_definition" "cds_hubble" {
 resource "aws_cloudwatch_log_group" "cds_portal" {
   name              = "/ecs/${var.environment}-cds-portal"
   retention_in_days = 7
+  log_group_class   = "INFREQUENT_ACCESS"
 
   tags = {
     Name        = "${var.environment}-cds-portal-logs"
@@ -789,6 +790,7 @@ resource "aws_cloudwatch_log_group" "cds_portal" {
 resource "aws_cloudwatch_log_group" "cds_hubble" {
   name              = "/ecs/${var.environment}-cds-hubble"
   retention_in_days = 7
+  log_group_class   = "INFREQUENT_ACCESS"
 
   tags = {
     Name        = "${var.environment}-cds-hubble-logs"
@@ -934,7 +936,7 @@ resource "aws_appautoscaling_policy" "cds_portal_requests" {
       predefined_metric_type = "ALBRequestCountPerTarget"
       resource_label         = "${aws_lb.main.arn_suffix}/${aws_lb_target_group.cds_portal.arn_suffix}"
     }
-    # Scale out when avg requests/task exceeds this
+    # Scale out when avg requests/task exceeds this — tune to your expected class size
     target_value       = 500
     scale_in_cooldown  = 300
     scale_out_cooldown = 60
