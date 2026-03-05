@@ -70,33 +70,6 @@ resource "aws_subnet" "private" {
   }
 }
 
-# NAT Gateways
-resource "aws_eip" "nat" {
-  count = 2
-
-  domain = "vpc"
-  depends_on = [aws_internet_gateway.main]
-
-  tags = {
-    Name        = "${var.environment}-nat-eip-${count.index + 1}"
-    Environment = var.environment
-  }
-}
-
-resource "aws_nat_gateway" "main" {
-  count = 2
-
-  allocation_id = aws_eip.nat[count.index].id
-  subnet_id     = aws_subnet.public[count.index].id
-
-  tags = {
-    Name        = "${var.environment}-nat-gateway-${count.index + 1}"
-    Environment = var.environment
-  }
-
-  depends_on = [aws_internet_gateway.main]
-}
-
 # Route Tables
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
@@ -112,35 +85,12 @@ resource "aws_route_table" "public" {
   }
 }
 
-resource "aws_route_table" "private" {
-  count = 2
-
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.main[count.index].id
-  }
-
-  tags = {
-    Name        = "${var.environment}-private-rt-${count.index + 1}"
-    Environment = var.environment
-  }
-}
-
 # Route Table Associations
 resource "aws_route_table_association" "public" {
   count = 2
 
   subnet_id      = aws_subnet.public[count.index].id
   route_table_id = aws_route_table.public.id
-}
-
-resource "aws_route_table_association" "private" {
-  count = 2
-
-  subnet_id      = aws_subnet.private[count.index].id
-  route_table_id = aws_route_table.private[count.index].id
 }
 
 # Security Groups
@@ -262,7 +212,7 @@ resource "aws_lb_target_group" "cds_hubble" {
   health_check {
     enabled             = true
     healthy_threshold   = 2
-    interval            = 60
+    interval            = 30
     matcher             = "200,307"
     path                = "/hubbles-law"
     port                = "8765"
@@ -361,15 +311,6 @@ resource "aws_lb_listener_rule" "cds_hubble_https" {
     Name        = "${var.environment}-hubble-https-rule"
     Environment = var.environment
   }
-}
-
-# CloudFront Origin Access Control for ALB
-resource "aws_cloudfront_origin_access_control" "alb" {
-  name                              = "${var.environment}-alb-oac"
-  description                       = "Origin Access Control for ALB"
-  origin_access_control_origin_type = "mediapackagev2"
-  signing_behavior                  = "always"
-  signing_protocol                  = "sigv4"
 }
 
 # CloudFront Distribution
@@ -499,6 +440,18 @@ resource "aws_ecs_cluster" "main" {
   tags = {
     Name        = "${var.environment}-ecs-cluster"
     Environment = var.environment
+  }
+}
+
+# Capacity Providers (Fargate + Fargate Spot for burst)
+resource "aws_ecs_cluster_capacity_providers" "main" {
+  cluster_name       = aws_ecs_cluster.main.name
+  capacity_providers = ["FARGATE", "FARGATE_SPOT"]
+
+  default_capacity_provider_strategy {
+    capacity_provider = "FARGATE"
+    base              = 1
+    weight            = 1
   }
 }
 
@@ -849,12 +802,25 @@ resource "aws_ecs_service" "cds_portal" {
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.cds_portal.arn
   desired_count   = var.cds_portal_min_capacity
-  launch_type     = "FARGATE"
+
+  # Use capacity provider strategy instead of launch_type
+  # Base task runs on on-demand Fargate; scale-out uses Spot
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE"
+    base              = 1
+    weight            = 1
+  }
+
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    base              = 0
+    weight            = 4
+  }
 
   network_configuration {
     security_groups  = [aws_security_group.ecs_tasks.id]
-    subnets          = aws_subnet.private[*].id
-    assign_public_ip = false
+    subnets          = aws_subnet.public[*].id
+    assign_public_ip = true
   }
 
   load_balancer {
@@ -876,12 +842,25 @@ resource "aws_ecs_service" "cds_hubble" {
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.cds_hubble.arn
   desired_count   = var.cds_hubble_min_capacity
-  launch_type     = "FARGATE"
+
+  # Use capacity provider strategy instead of launch_type
+  # Base task runs on on-demand Fargate; scale-out uses Spot
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE"
+    base              = 1
+    weight            = 1
+  }
+
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    base              = 0
+    weight            = 4
+  }
 
   network_configuration {
     security_groups  = [aws_security_group.ecs_tasks.id]
-    subnets          = aws_subnet.private[*].id
-    assign_public_ip = false
+    subnets          = aws_subnet.public[*].id
+    assign_public_ip = true
   }
 
   load_balancer {
@@ -943,6 +922,25 @@ resource "aws_appautoscaling_policy" "cds_portal_cpu" {
   }
 }
 
+resource "aws_appautoscaling_policy" "cds_portal_requests" {
+  name               = "${var.environment}-cds-portal-request-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.cds_portal.resource_id
+  scalable_dimension = aws_appautoscaling_target.cds_portal.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.cds_portal.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ALBRequestCountPerTarget"
+      resource_label         = "${aws_lb.main.arn_suffix}/${aws_lb_target_group.cds_portal.arn_suffix}"
+    }
+    # Scale out when avg requests/task exceeds this
+    target_value       = 500
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+
 resource "aws_appautoscaling_policy" "cds_hubble_cpu" {
   name               = "${var.environment}-cds-hubble-cpu-scaling"
   policy_type        = "TargetTrackingScaling"
@@ -957,6 +955,24 @@ resource "aws_appautoscaling_policy" "cds_hubble_cpu" {
     target_value       = 70.0
     scale_in_cooldown  = 300
     scale_out_cooldown = 300
+  }
+}
+
+resource "aws_appautoscaling_policy" "cds_hubble_requests" {
+  name               = "${var.environment}-cds-hubble-request-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.cds_hubble.resource_id
+  scalable_dimension = aws_appautoscaling_target.cds_hubble.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.cds_hubble.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ALBRequestCountPerTarget"
+      resource_label         = "${aws_lb.main.arn_suffix}/${aws_lb_target_group.cds_hubble.arn_suffix}"
+    }
+    target_value       = 500
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
   }
 }
 
