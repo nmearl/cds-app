@@ -6,7 +6,7 @@ cds_hubble_image = "072415053150.dkr.ecr.us-east-1.amazonaws.com/cds-hubble:late
 # Auto-scaling configuration
 cds_portal_min_capacity = 1
 cds_portal_max_capacity = 3
-cds_hubble_min_capacity = 2
+cds_hubble_min_capacity = 1
 cds_hubble_max_capacity = 4
 
 # GitHub repository for CI/CD
