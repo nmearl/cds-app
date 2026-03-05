@@ -430,7 +430,8 @@ data "aws_caller_identity" "current" {}
 # CloudWatch Log Groups for CodeBuild
 resource "aws_cloudwatch_log_group" "codebuild_portal" {
   name              = "/aws/codebuild/${var.environment}-cds-portal-build"
-  retention_in_days = 14
+  retention_in_days = 7
+  log_group_class   = "INFREQUENT_ACCESS"
 
   tags = {
     Name        = "${var.environment}-codebuild-portal-logs"
@@ -440,7 +441,8 @@ resource "aws_cloudwatch_log_group" "codebuild_portal" {
 
 resource "aws_cloudwatch_log_group" "codebuild_hubble" {
   name              = "/aws/codebuild/${var.environment}-cds-hubble-build"
-  retention_in_days = 14
+  retention_in_days = 7
+  log_group_class   = "INFREQUENT_ACCESS"
 
   tags = {
     Name        = "${var.environment}-codebuild-hubble-logs"
