@@ -127,18 +127,14 @@ def Page(app_state: Reactive[AppState]):
 
     def load_class_data():
         logger.info("Loading class data")
-        class_measurements = LOCAL_API.get_class_measurements(app_state, story_state)
         measurements = Ref(story_state.fields.class_measurements)
         student_ids = Ref(story_state.fields.stage_4_class_data_students)
-        if not class_measurements:
-            return []
 
-        if student_ids.value:
-            class_data_points = [
-                m for m in class_measurements if m.student_id in student_ids.value
-            ]
-        else:
-            class_data_points = class_measurements
+        ids = student_ids.value or None
+        class_measurements = LOCAL_API.get_class_measurements(app_state, story_state, ids)
+
+        class_data_points = class_measurements
+        if not student_ids.value:
             ids = [
                 int(id) for id in np.unique([m.student_id for m in class_measurements])
             ]
