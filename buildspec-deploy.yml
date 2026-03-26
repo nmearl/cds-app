@@ -1,0 +1,36 @@
+version: 0.2
+
+# Shared deploy buildspec used by all four deploy CodeBuild projects
+# (portal-staging, hubble-staging, portal-prod, hubble-prod).
+#
+# The calling CodeBuild project supplies these environment variables:
+#   IMAGE_REPO_NAME  — ECR repository name (e.g. cds-portal)
+#   IMAGE_TAG        — Target tag to promote to (staging | latest)
+#   ECS_CLUSTER_NAME — ECS cluster name
+#   ECS_SERVICE_NAME — ECS service name to force-redeploy
+#
+# The build artifact from the upstream build project contains commit_tag.txt
+# which carries the commit-SHA tag built in the Build stage.
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - ECR_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
+      - COMMIT_TAG=$(cat commit_tag.txt)
+      - echo "Promoting $ECR_URI:$COMMIT_TAG to $ECR_URI:$IMAGE_TAG"
+
+  build:
+    commands:
+      - docker pull $ECR_URI:$COMMIT_TAG
+      - docker tag  $ECR_URI:$COMMIT_TAG $ECR_URI:$IMAGE_TAG
+      - docker push $ECR_URI:$IMAGE_TAG
+
+  post_build:
+    commands:
+      - echo Updating ECS service $ECS_SERVICE_NAME in cluster $ECS_CLUSTER_NAME...
+      - aws ecs update-service --cluster $ECS_CLUSTER_NAME --service $ECS_SERVICE_NAME --force-new-deployment
+      - echo Waiting for service to stabilize...
+      - aws ecs wait services-stable --cluster $ECS_CLUSTER_NAME --services $ECS_SERVICE_NAME
+      - echo Deploy complete.
