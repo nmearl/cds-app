@@ -15,3 +15,9 @@ github_branch = "main"
 
 # ALB domain name for SSL certificate
 alb_domain_name = "app.cosmicds.cfa.harvard.edu"
+
+# Staging domain (covered by *.app.cosmicds.cfa.harvard.edu wildcard cert)
+staging_domain_name = "staging.app.cosmicds.cfa.harvard.edu"
+
+# Optional: set to an SNS topic ARN to receive an email when production approval is waiting
+# approval_notification_arn = "arn:aws:sns:us-east-1:072415053150:pipeline-approvals"

@@ -227,7 +227,7 @@ resource "aws_lb_target_group" "cds_hubble" {
   }
 }
 
-# Load Balancer Listener
+# Load Balancer Listener (HTTP — redirects to HTTPS)
 resource "aws_lb_listener" "main" {
   load_balancer_arn = aws_lb.main.arn
   port              = "80"
@@ -244,7 +244,7 @@ resource "aws_lb_listener" "main" {
   }
 }
 
-# Listener Rules
+# Listener Rules (HTTP)
 resource "aws_lb_listener_rule" "cds_hubble" {
   listener_arn = aws_lb_listener.main.arn
   priority     = 100
@@ -266,13 +266,20 @@ resource "aws_lb_listener_rule" "cds_hubble" {
   }
 }
 
-# ACM Certificate for ALB (using existing imported certificate)
+# ACM Certificate for production (exact domain — imported externally)
 data "aws_acm_certificate" "alb" {
   domain   = var.alb_domain_name
   statuses = ["ISSUED"]
 }
 
-# HTTPS Listener
+# ACM Wildcard Certificate for staging subdomain
+# This is the new *.app.cosmicds.cfa.harvard.edu cert requested via ACM
+data "aws_acm_certificate" "wildcard" {
+  domain   = "*.${join(".", slice(split(".", var.alb_domain_name), 1, length(split(".", var.alb_domain_name))))}"
+  statuses = ["ISSUED"]
+}
+
+# HTTPS Listener — default cert covers production domain
 resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.main.arn
   port              = "443"
@@ -291,7 +298,13 @@ resource "aws_lb_listener" "https" {
   }
 }
 
-# HTTPS Listener Rule for Hubble
+# Attach the wildcard cert to the HTTPS listener so staging subdomain is also covered
+resource "aws_lb_listener_certificate" "wildcard" {
+  listener_arn    = aws_lb_listener.https.arn
+  certificate_arn = data.aws_acm_certificate.wildcard.arn
+}
+
+# HTTPS Listener Rule for Hubble (production)
 resource "aws_lb_listener_rule" "cds_hubble_https" {
   listener_arn = aws_lb_listener.https.arn
   priority     = 100
@@ -387,7 +400,7 @@ resource "aws_cloudfront_distribution" "apps" {
     compress               = true
   }
 
-  # Cache behavior for static assets (if any)
+  # Cache behavior for static assets
   ordered_cache_behavior {
     path_pattern     = "/static/*"
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
@@ -479,8 +492,8 @@ resource "aws_secretsmanager_secret" "cds_hubble_secrets" {
 # Parameter Store for non-sensitive environment variables
 resource "aws_ssm_parameter" "cds_portal_env_vars" {
   for_each = {
-    "NODE_ENV"    = "production"
-    "LOG_LEVEL"   = "info"
+    "NODE_ENV"  = "production"
+    "LOG_LEVEL" = "info"
   }
 
   name  = "/${var.environment}/cds-portal/env/${each.key}"
@@ -496,8 +509,8 @@ resource "aws_ssm_parameter" "cds_portal_env_vars" {
 
 resource "aws_ssm_parameter" "cds_hubble_env_vars" {
   for_each = {
-    "NODE_ENV"    = "production"
-    "LOG_LEVEL"   = "info"
+    "NODE_ENV"  = "production"
+    "LOG_LEVEL" = "info"
   }
 
   name  = "/${var.environment}/cds-hubble/env/${each.key}"
@@ -554,7 +567,9 @@ resource "aws_iam_role_policy" "ecs_secrets_policy" {
         ]
         Resource = [
           aws_secretsmanager_secret.cds_portal_secrets.arn,
-          aws_secretsmanager_secret.cds_hubble_secrets.arn
+          aws_secretsmanager_secret.cds_hubble_secrets.arn,
+          aws_secretsmanager_secret.cds_portal_staging_secrets.arn,
+          aws_secretsmanager_secret.cds_hubble_staging_secrets.arn
         ]
       },
       {
@@ -805,8 +820,6 @@ resource "aws_ecs_service" "cds_portal" {
   task_definition = aws_ecs_task_definition.cds_portal.arn
   desired_count   = var.cds_portal_min_capacity
 
-  # Use capacity provider strategy instead of launch_type
-  # Base task runs on on-demand Fargate; scale-out uses Spot
   capacity_provider_strategy {
     capacity_provider = "FARGATE"
     base              = 1
@@ -845,8 +858,6 @@ resource "aws_ecs_service" "cds_hubble" {
   task_definition = aws_ecs_task_definition.cds_hubble.arn
   desired_count   = var.cds_hubble_min_capacity
 
-  # Use capacity provider strategy instead of launch_type
-  # Base task runs on on-demand Fargate; scale-out uses Spot
   capacity_provider_strategy {
     capacity_provider = "FARGATE"
     base              = 1
@@ -936,7 +947,6 @@ resource "aws_appautoscaling_policy" "cds_portal_requests" {
       predefined_metric_type = "ALBRequestCountPerTarget"
       resource_label         = "${aws_lb.main.arn_suffix}/${aws_lb_target_group.cds_portal.arn_suffix}"
     }
-    # Scale out when avg requests/task exceeds this — tune to your expected class size
     target_value       = 500
     scale_in_cooldown  = 300
     scale_out_cooldown = 60

@@ -111,6 +111,7 @@ resource "aws_iam_role_policy" "codebuild_policy" {
       {
         Effect = "Allow"
         Action = [
+          "s3:GetBucketVersioning",
           "s3:GetObject",
           "s3:GetObjectVersion",
           "s3:PutObject"
@@ -212,12 +213,20 @@ resource "aws_iam_role_policy" "codepipeline_policy" {
           "codestar-connections:UseConnection"
         ]
         Resource = aws_codestarconnections_connection.github.arn
+      },
+      # Required for the Manual Approval stage to publish to SNS
+      {
+        Effect = "Allow"
+        Action = [
+          "sns:Publish"
+        ]
+        Resource = "*"
       }
     ]
   })
 }
 
-# GitHub Connection (requires manual setup in AWS Console)
+# GitHub Connection (requires manual activation in AWS Console after apply)
 resource "aws_codestarconnections_connection" "github" {
   name          = "${var.environment}-github-connection"
   provider_type = "GitHub"
@@ -228,11 +237,21 @@ resource "aws_codestarconnections_connection" "github" {
   }
 }
 
+# -----------------------------------------------------------------------
 # CodeBuild Projects
+#
+# Build projects: compile the Docker image and push it with a commit-SHA
+# tag (e.g. :commit-abc1234) so downstream deploy projects can pull the
+# exact same artifact regardless of when they run.
+#
+# Deploy projects: re-tag the commit-SHA image to :staging or :latest,
+# push it, then force a new ECS deployment and wait for stability.
+# -----------------------------------------------------------------------
+
 resource "aws_codebuild_project" "cds_portal_build" {
-  name          = "${var.environment}-cds-portal-build"
-  description   = "Build project for CDS Portal"
-  service_role  = aws_iam_role.codebuild_role.arn
+  name         = "${var.environment}-cds-portal-build"
+  description  = "Build Docker image for CDS Portal and push with commit-SHA tag"
+  service_role = aws_iam_role.codebuild_role.arn
 
   artifacts {
     type = "CODEPIPELINE"
@@ -240,49 +259,27 @@ resource "aws_codebuild_project" "cds_portal_build" {
 
   environment {
     compute_type                = "BUILD_GENERAL1_SMALL"
-    image                      = "aws/codebuild/amazonlinux2-x86_64-standard:3.0"
-    type                       = "LINUX_CONTAINER"
+    image                       = "aws/codebuild/amazonlinux2-x86_64-standard:3.0"
+    type                        = "LINUX_CONTAINER"
     image_pull_credentials_type = "CODEBUILD"
-    privileged_mode            = true
+    privileged_mode             = true
 
     environment_variable {
       name  = "AWS_DEFAULT_REGION"
       value = var.aws_region
     }
-
     environment_variable {
       name  = "AWS_ACCOUNT_ID"
       value = data.aws_caller_identity.current.account_id
     }
-
     environment_variable {
       name  = "IMAGE_REPO_NAME"
       value = aws_ecr_repository.cds_portal.name
     }
-
-    environment_variable {
-      name  = "IMAGE_TAG"
-      value = "latest"
-    }
-
-    environment_variable {
-      name  = "CONTAINER_NAME"
-      value = "cds-portal"
-    }
-
-    environment_variable {
-      name  = "ECS_CLUSTER_NAME"
-      value = aws_ecs_cluster.main.name
-    }
-
-    environment_variable {
-      name  = "ECS_SERVICE_NAME"
-      value = "${var.environment}-cds-portal"
-    }
   }
 
   source {
-    type = "CODEPIPELINE"
+    type      = "CODEPIPELINE"
     buildspec = "buildspec-portal.yml"
   }
 
@@ -293,9 +290,9 @@ resource "aws_codebuild_project" "cds_portal_build" {
 }
 
 resource "aws_codebuild_project" "cds_hubble_build" {
-  name          = "${var.environment}-cds-hubble-build"
-  description   = "Build project for CDS Hubble"
-  service_role  = aws_iam_role.codebuild_role.arn
+  name         = "${var.environment}-cds-hubble-build"
+  description  = "Build Docker image for CDS Hubble and push with commit-SHA tag"
+  service_role = aws_iam_role.codebuild_role.arn
 
   artifacts {
     type = "CODEPIPELINE"
@@ -303,49 +300,27 @@ resource "aws_codebuild_project" "cds_hubble_build" {
 
   environment {
     compute_type                = "BUILD_GENERAL1_SMALL"
-    image                      = "aws/codebuild/amazonlinux2-x86_64-standard:3.0"
-    type                       = "LINUX_CONTAINER"
+    image                       = "aws/codebuild/amazonlinux2-x86_64-standard:3.0"
+    type                        = "LINUX_CONTAINER"
     image_pull_credentials_type = "CODEBUILD"
-    privileged_mode            = true
+    privileged_mode             = true
 
     environment_variable {
       name  = "AWS_DEFAULT_REGION"
       value = var.aws_region
     }
-
     environment_variable {
       name  = "AWS_ACCOUNT_ID"
       value = data.aws_caller_identity.current.account_id
     }
-
     environment_variable {
       name  = "IMAGE_REPO_NAME"
       value = aws_ecr_repository.cds_hubble.name
     }
-
-    environment_variable {
-      name  = "IMAGE_TAG"
-      value = "latest"
-    }
-
-    environment_variable {
-      name  = "CONTAINER_NAME"
-      value = "cds-hubble"
-    }
-
-    environment_variable {
-      name  = "ECS_CLUSTER_NAME"
-      value = aws_ecs_cluster.main.name
-    }
-
-    environment_variable {
-      name  = "ECS_SERVICE_NAME"
-      value = "${var.environment}-cds-hubble"
-    }
   }
 
   source {
-    type = "CODEPIPELINE"
+    type      = "CODEPIPELINE"
     buildspec = "buildspec-hubble.yml"
   }
 
@@ -355,7 +330,228 @@ resource "aws_codebuild_project" "cds_hubble_build" {
   }
 }
 
+# Deploy to staging: re-tag commit-SHA image as :staging, push, update service
+resource "aws_codebuild_project" "cds_portal_staging_deploy" {
+  name         = "${var.environment}-cds-portal-staging-deploy"
+  description  = "Deploy CDS Portal to staging ECS service"
+  service_role = aws_iam_role.codebuild_role.arn
+
+  artifacts {
+    type = "CODEPIPELINE"
+  }
+
+  environment {
+    compute_type                = "BUILD_GENERAL1_SMALL"
+    image                       = "aws/codebuild/amazonlinux2-x86_64-standard:3.0"
+    type                        = "LINUX_CONTAINER"
+    image_pull_credentials_type = "CODEBUILD"
+    privileged_mode             = true
+
+    environment_variable {
+      name  = "AWS_DEFAULT_REGION"
+      value = var.aws_region
+    }
+    environment_variable {
+      name  = "AWS_ACCOUNT_ID"
+      value = data.aws_caller_identity.current.account_id
+    }
+    environment_variable {
+      name  = "IMAGE_REPO_NAME"
+      value = aws_ecr_repository.cds_portal.name
+    }
+    environment_variable {
+      name  = "IMAGE_TAG"
+      value = "staging"
+    }
+    environment_variable {
+      name  = "ECS_CLUSTER_NAME"
+      value = aws_ecs_cluster.main.name
+    }
+    environment_variable {
+      name  = "ECS_SERVICE_NAME"
+      value = "${var.environment}-cds-portal-staging"
+    }
+  }
+
+  source {
+    type      = "CODEPIPELINE"
+    buildspec = "buildspec-deploy.yml"
+  }
+
+  tags = {
+    Name        = "${var.environment}-cds-portal-staging-deploy"
+    Environment = var.environment
+    Stage       = "staging"
+  }
+}
+
+resource "aws_codebuild_project" "cds_hubble_staging_deploy" {
+  name         = "${var.environment}-cds-hubble-staging-deploy"
+  description  = "Deploy CDS Hubble to staging ECS service"
+  service_role = aws_iam_role.codebuild_role.arn
+
+  artifacts {
+    type = "CODEPIPELINE"
+  }
+
+  environment {
+    compute_type                = "BUILD_GENERAL1_SMALL"
+    image                       = "aws/codebuild/amazonlinux2-x86_64-standard:3.0"
+    type                        = "LINUX_CONTAINER"
+    image_pull_credentials_type = "CODEBUILD"
+    privileged_mode             = true
+
+    environment_variable {
+      name  = "AWS_DEFAULT_REGION"
+      value = var.aws_region
+    }
+    environment_variable {
+      name  = "AWS_ACCOUNT_ID"
+      value = data.aws_caller_identity.current.account_id
+    }
+    environment_variable {
+      name  = "IMAGE_REPO_NAME"
+      value = aws_ecr_repository.cds_hubble.name
+    }
+    environment_variable {
+      name  = "IMAGE_TAG"
+      value = "staging"
+    }
+    environment_variable {
+      name  = "ECS_CLUSTER_NAME"
+      value = aws_ecs_cluster.main.name
+    }
+    environment_variable {
+      name  = "ECS_SERVICE_NAME"
+      value = "${var.environment}-cds-hubble-staging"
+    }
+  }
+
+  source {
+    type      = "CODEPIPELINE"
+    buildspec = "buildspec-deploy.yml"
+  }
+
+  tags = {
+    Name        = "${var.environment}-cds-hubble-staging-deploy"
+    Environment = var.environment
+    Stage       = "staging"
+  }
+}
+
+# Deploy to production: re-tag commit-SHA image as :latest, push, update service
+resource "aws_codebuild_project" "cds_portal_prod_deploy" {
+  name         = "${var.environment}-cds-portal-prod-deploy"
+  description  = "Deploy CDS Portal to production ECS service"
+  service_role = aws_iam_role.codebuild_role.arn
+
+  artifacts {
+    type = "CODEPIPELINE"
+  }
+
+  environment {
+    compute_type                = "BUILD_GENERAL1_SMALL"
+    image                       = "aws/codebuild/amazonlinux2-x86_64-standard:3.0"
+    type                        = "LINUX_CONTAINER"
+    image_pull_credentials_type = "CODEBUILD"
+    privileged_mode             = true
+
+    environment_variable {
+      name  = "AWS_DEFAULT_REGION"
+      value = var.aws_region
+    }
+    environment_variable {
+      name  = "AWS_ACCOUNT_ID"
+      value = data.aws_caller_identity.current.account_id
+    }
+    environment_variable {
+      name  = "IMAGE_REPO_NAME"
+      value = aws_ecr_repository.cds_portal.name
+    }
+    environment_variable {
+      name  = "IMAGE_TAG"
+      value = "latest"
+    }
+    environment_variable {
+      name  = "ECS_CLUSTER_NAME"
+      value = aws_ecs_cluster.main.name
+    }
+    environment_variable {
+      name  = "ECS_SERVICE_NAME"
+      value = "${var.environment}-cds-portal"
+    }
+  }
+
+  source {
+    type      = "CODEPIPELINE"
+    buildspec = "buildspec-deploy.yml"
+  }
+
+  tags = {
+    Name        = "${var.environment}-cds-portal-prod-deploy"
+    Environment = var.environment
+    Stage       = "production"
+  }
+}
+
+resource "aws_codebuild_project" "cds_hubble_prod_deploy" {
+  name         = "${var.environment}-cds-hubble-prod-deploy"
+  description  = "Deploy CDS Hubble to production ECS service"
+  service_role = aws_iam_role.codebuild_role.arn
+
+  artifacts {
+    type = "CODEPIPELINE"
+  }
+
+  environment {
+    compute_type                = "BUILD_GENERAL1_SMALL"
+    image                       = "aws/codebuild/amazonlinux2-x86_64-standard:3.0"
+    type                        = "LINUX_CONTAINER"
+    image_pull_credentials_type = "CODEBUILD"
+    privileged_mode             = true
+
+    environment_variable {
+      name  = "AWS_DEFAULT_REGION"
+      value = var.aws_region
+    }
+    environment_variable {
+      name  = "AWS_ACCOUNT_ID"
+      value = data.aws_caller_identity.current.account_id
+    }
+    environment_variable {
+      name  = "IMAGE_REPO_NAME"
+      value = aws_ecr_repository.cds_hubble.name
+    }
+    environment_variable {
+      name  = "IMAGE_TAG"
+      value = "latest"
+    }
+    environment_variable {
+      name  = "ECS_CLUSTER_NAME"
+      value = aws_ecs_cluster.main.name
+    }
+    environment_variable {
+      name  = "ECS_SERVICE_NAME"
+      value = "${var.environment}-cds-hubble"
+    }
+  }
+
+  source {
+    type      = "CODEPIPELINE"
+    buildspec = "buildspec-deploy.yml"
+  }
+
+  tags = {
+    Name        = "${var.environment}-cds-hubble-prod-deploy"
+    Environment = var.environment
+    Stage       = "production"
+  }
+}
+
+# -----------------------------------------------------------------------
 # CodePipeline
+# Source → Build → Deploy Staging → Approve → Deploy Production
+# -----------------------------------------------------------------------
 resource "aws_codepipeline" "cds_pipeline" {
   name     = "${var.environment}-cds-pipeline"
   role_arn = aws_iam_role.codepipeline_role.arn
@@ -384,6 +580,7 @@ resource "aws_codepipeline" "cds_pipeline" {
     }
   }
 
+  # Build both images in parallel, tagging each with the commit SHA
   stage {
     name = "Build"
 
@@ -414,6 +611,90 @@ resource "aws_codepipeline" "cds_pipeline" {
 
       configuration = {
         ProjectName = aws_codebuild_project.cds_hubble_build.name
+      }
+    }
+  }
+
+  # Re-tag commit-SHA images as :staging and update staging services in parallel
+  stage {
+    name = "Deploy-Staging"
+
+    action {
+      name            = "Deploy-Portal-Staging"
+      category        = "Build"
+      owner           = "AWS"
+      provider        = "CodeBuild"
+      input_artifacts = ["portal_build_output"]
+      version         = "1"
+      run_order       = 1
+
+      configuration = {
+        ProjectName = aws_codebuild_project.cds_portal_staging_deploy.name
+      }
+    }
+
+    action {
+      name            = "Deploy-Hubble-Staging"
+      category        = "Build"
+      owner           = "AWS"
+      provider        = "CodeBuild"
+      input_artifacts = ["hubble_build_output"]
+      version         = "1"
+      run_order       = 1
+
+      configuration = {
+        ProjectName = aws_codebuild_project.cds_hubble_staging_deploy.name
+      }
+    }
+  }
+
+  # Gate: a human must review staging before production is touched
+  stage {
+    name = "Approve-Production"
+
+    action {
+      name     = "Manual-Approval"
+      category = "Approval"
+      owner    = "AWS"
+      provider = "Manual"
+      version  = "1"
+
+      configuration = {
+        CustomData      = "Review staging at https://${var.staging_domain_name} then approve to deploy to production."
+        NotificationArn = var.approval_notification_arn != "" ? var.approval_notification_arn : null
+      }
+    }
+  }
+
+  # Re-tag commit-SHA images as :latest and update production services in parallel
+  stage {
+    name = "Deploy-Production"
+
+    action {
+      name            = "Deploy-Portal-Production"
+      category        = "Build"
+      owner           = "AWS"
+      provider        = "CodeBuild"
+      input_artifacts = ["portal_build_output"]
+      version         = "1"
+      run_order       = 1
+
+      configuration = {
+        ProjectName = aws_codebuild_project.cds_portal_prod_deploy.name
+      }
+    }
+
+    action {
+      name            = "Deploy-Hubble-Production"
+      category        = "Build"
+      owner           = "AWS"
+      provider        = "CodeBuild"
+      input_artifacts = ["hubble_build_output"]
+      version         = "1"
+      run_order       = 1
+
+      configuration = {
+        ProjectName = aws_codebuild_project.cds_hubble_prod_deploy.name
       }
     }
   }

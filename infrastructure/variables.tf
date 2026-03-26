@@ -71,6 +71,18 @@ variable "github_branch" {
 }
 
 variable "alb_domain_name" {
-  description = "Domain name for the ALB SSL certificate"
+  description = "Domain name for the ALB SSL certificate (production)"
   type        = string
+}
+
+variable "staging_domain_name" {
+  description = "Domain name for the staging environment (must be covered by the wildcard cert)"
+  type        = string
+  default     = "staging.app.cosmicds.cfa.harvard.edu"
+}
+
+variable "approval_notification_arn" {
+  description = "SNS topic ARN for pipeline approval notifications. Leave empty to skip notifications."
+  type        = string
+  default     = ""
 }
