@@ -1,6 +1,13 @@
-# ECR Repositories
+data "aws_caller_identity" "current" {}
+
+resource "random_string" "bucket_suffix" {
+  length  = 8
+  special = false
+  upper   = false
+}
+
 resource "aws_ecr_repository" "cds_portal" {
-  name                 = "cds-portal"
+  name                 = var.portal_repository_name
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
@@ -14,7 +21,7 @@ resource "aws_ecr_repository" "cds_portal" {
 }
 
 resource "aws_ecr_repository" "cds_hubble" {
-  name                 = "cds-hubble"
+  name                 = var.hubble_repository_name
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
@@ -27,7 +34,6 @@ resource "aws_ecr_repository" "cds_hubble" {
   }
 }
 
-# S3 Bucket for CodePipeline artifacts
 resource "aws_s3_bucket" "codepipeline_artifacts" {
   bucket = "${var.environment}-cds-codepipeline-artifacts-${random_string.bucket_suffix.result}"
 
@@ -37,14 +43,9 @@ resource "aws_s3_bucket" "codepipeline_artifacts" {
   }
 }
 
-resource "random_string" "bucket_suffix" {
-  length  = 8
-  special = false
-  upper   = false
-}
-
 resource "aws_s3_bucket_versioning" "codepipeline_artifacts" {
   bucket = aws_s3_bucket.codepipeline_artifacts.id
+
   versioning_configuration {
     status = "Enabled"
   }
@@ -69,7 +70,6 @@ resource "aws_s3_bucket_public_access_block" "codepipeline_artifacts" {
   restrict_public_buckets = true
 }
 
-# CodeBuild Service Role
 resource "aws_iam_role" "codebuild_role" {
   name = "${var.environment}-codebuild-role"
 
@@ -117,7 +117,7 @@ resource "aws_iam_role_policy" "codebuild_policy" {
           "s3:PutObject"
         ]
         Resource = [
-          "${aws_s3_bucket.codepipeline_artifacts.arn}",
+          aws_s3_bucket.codepipeline_artifacts.arn,
           "${aws_s3_bucket.codepipeline_artifacts.arn}/*"
         ]
       },
@@ -150,13 +150,12 @@ resource "aws_iam_role_policy" "codebuild_policy" {
         Action = [
           "iam:PassRole"
         ]
-        Resource = aws_iam_role.ecs_task_execution_role.arn
+        Resource = "*"
       }
     ]
   })
 }
 
-# CodePipeline Service Role
 resource "aws_iam_role" "codepipeline_role" {
   name = "${var.environment}-codepipeline-role"
 
@@ -195,7 +194,7 @@ resource "aws_iam_role_policy" "codepipeline_policy" {
           "s3:PutObject"
         ]
         Resource = [
-          "${aws_s3_bucket.codepipeline_artifacts.arn}",
+          aws_s3_bucket.codepipeline_artifacts.arn,
           "${aws_s3_bucket.codepipeline_artifacts.arn}/*"
         ]
       },
@@ -214,7 +213,6 @@ resource "aws_iam_role_policy" "codepipeline_policy" {
         ]
         Resource = aws_codestarconnections_connection.github.arn
       },
-      # Required for the Manual Approval stage to publish to SNS
       {
         Effect = "Allow"
         Action = [
@@ -226,7 +224,6 @@ resource "aws_iam_role_policy" "codepipeline_policy" {
   })
 }
 
-# GitHub Connection (requires manual activation in AWS Console after apply)
 resource "aws_codestarconnections_connection" "github" {
   name          = "${var.environment}-github-connection"
   provider_type = "GitHub"
@@ -236,17 +233,6 @@ resource "aws_codestarconnections_connection" "github" {
     Environment = var.environment
   }
 }
-
-# -----------------------------------------------------------------------
-# CodeBuild Projects
-#
-# Build projects: compile the Docker image and push it with a commit-SHA
-# tag (e.g. :commit-abc1234) so downstream deploy projects can pull the
-# exact same artifact regardless of when they run.
-#
-# Deploy projects: re-tag the commit-SHA image to :staging or :latest,
-# push it, then force a new ECS deployment and wait for stability.
-# -----------------------------------------------------------------------
 
 resource "aws_codebuild_project" "cds_portal_build" {
   name         = "${var.environment}-cds-portal-build"
@@ -268,10 +254,12 @@ resource "aws_codebuild_project" "cds_portal_build" {
       name  = "AWS_DEFAULT_REGION"
       value = var.aws_region
     }
+
     environment_variable {
       name  = "AWS_ACCOUNT_ID"
       value = data.aws_caller_identity.current.account_id
     }
+
     environment_variable {
       name  = "IMAGE_REPO_NAME"
       value = aws_ecr_repository.cds_portal.name
@@ -309,10 +297,12 @@ resource "aws_codebuild_project" "cds_hubble_build" {
       name  = "AWS_DEFAULT_REGION"
       value = var.aws_region
     }
+
     environment_variable {
       name  = "AWS_ACCOUNT_ID"
       value = data.aws_caller_identity.current.account_id
     }
+
     environment_variable {
       name  = "IMAGE_REPO_NAME"
       value = aws_ecr_repository.cds_hubble.name
@@ -330,7 +320,6 @@ resource "aws_codebuild_project" "cds_hubble_build" {
   }
 }
 
-# Deploy to staging: re-tag commit-SHA image as :staging, push, update service
 resource "aws_codebuild_project" "cds_portal_staging_deploy" {
   name         = "${var.environment}-cds-portal-staging-deploy"
   description  = "Deploy CDS Portal to staging ECS service"
@@ -351,25 +340,30 @@ resource "aws_codebuild_project" "cds_portal_staging_deploy" {
       name  = "AWS_DEFAULT_REGION"
       value = var.aws_region
     }
+
     environment_variable {
       name  = "AWS_ACCOUNT_ID"
       value = data.aws_caller_identity.current.account_id
     }
+
     environment_variable {
       name  = "IMAGE_REPO_NAME"
       value = aws_ecr_repository.cds_portal.name
     }
+
     environment_variable {
       name  = "IMAGE_TAG"
       value = "staging"
     }
+
     environment_variable {
       name  = "ECS_CLUSTER_NAME"
-      value = aws_ecs_cluster.main.name
+      value = var.staging_cluster_name
     }
+
     environment_variable {
       name  = "ECS_SERVICE_NAME"
-      value = "${var.environment}-cds-portal-staging"
+      value = var.staging_portal_service_name
     }
   }
 
@@ -405,25 +399,30 @@ resource "aws_codebuild_project" "cds_hubble_staging_deploy" {
       name  = "AWS_DEFAULT_REGION"
       value = var.aws_region
     }
+
     environment_variable {
       name  = "AWS_ACCOUNT_ID"
       value = data.aws_caller_identity.current.account_id
     }
+
     environment_variable {
       name  = "IMAGE_REPO_NAME"
       value = aws_ecr_repository.cds_hubble.name
     }
+
     environment_variable {
       name  = "IMAGE_TAG"
       value = "staging"
     }
+
     environment_variable {
       name  = "ECS_CLUSTER_NAME"
-      value = aws_ecs_cluster.main.name
+      value = var.staging_cluster_name
     }
+
     environment_variable {
       name  = "ECS_SERVICE_NAME"
-      value = "${var.environment}-cds-hubble-staging"
+      value = var.staging_hubble_service_name
     }
   }
 
@@ -439,7 +438,6 @@ resource "aws_codebuild_project" "cds_hubble_staging_deploy" {
   }
 }
 
-# Deploy to production: re-tag commit-SHA image as :latest, push, update service
 resource "aws_codebuild_project" "cds_portal_prod_deploy" {
   name         = "${var.environment}-cds-portal-prod-deploy"
   description  = "Deploy CDS Portal to production ECS service"
@@ -460,25 +458,30 @@ resource "aws_codebuild_project" "cds_portal_prod_deploy" {
       name  = "AWS_DEFAULT_REGION"
       value = var.aws_region
     }
+
     environment_variable {
       name  = "AWS_ACCOUNT_ID"
       value = data.aws_caller_identity.current.account_id
     }
+
     environment_variable {
       name  = "IMAGE_REPO_NAME"
       value = aws_ecr_repository.cds_portal.name
     }
+
     environment_variable {
       name  = "IMAGE_TAG"
       value = "latest"
     }
+
     environment_variable {
       name  = "ECS_CLUSTER_NAME"
-      value = aws_ecs_cluster.main.name
+      value = var.production_cluster_name
     }
+
     environment_variable {
       name  = "ECS_SERVICE_NAME"
-      value = "${var.environment}-cds-portal"
+      value = var.production_portal_service_name
     }
   }
 
@@ -514,25 +517,30 @@ resource "aws_codebuild_project" "cds_hubble_prod_deploy" {
       name  = "AWS_DEFAULT_REGION"
       value = var.aws_region
     }
+
     environment_variable {
       name  = "AWS_ACCOUNT_ID"
       value = data.aws_caller_identity.current.account_id
     }
+
     environment_variable {
       name  = "IMAGE_REPO_NAME"
       value = aws_ecr_repository.cds_hubble.name
     }
+
     environment_variable {
       name  = "IMAGE_TAG"
       value = "latest"
     }
+
     environment_variable {
       name  = "ECS_CLUSTER_NAME"
-      value = aws_ecs_cluster.main.name
+      value = var.production_cluster_name
     }
+
     environment_variable {
       name  = "ECS_SERVICE_NAME"
-      value = "${var.environment}-cds-hubble"
+      value = var.production_hubble_service_name
     }
   }
 
@@ -548,10 +556,6 @@ resource "aws_codebuild_project" "cds_hubble_prod_deploy" {
   }
 }
 
-# -----------------------------------------------------------------------
-# CodePipeline
-# Source → Build → Deploy Staging → Approve → Deploy Production
-# -----------------------------------------------------------------------
 resource "aws_codepipeline" "cds_pipeline" {
   name     = "${var.environment}-cds-pipeline"
   role_arn = aws_iam_role.codepipeline_role.arn
@@ -580,7 +584,6 @@ resource "aws_codepipeline" "cds_pipeline" {
     }
   }
 
-  # Build both images in parallel, tagging each with the commit SHA
   stage {
     name = "Build"
 
@@ -615,7 +618,6 @@ resource "aws_codepipeline" "cds_pipeline" {
     }
   }
 
-  # Re-tag commit-SHA images as :staging and update staging services in parallel
   stage {
     name = "Deploy-Staging"
 
@@ -648,7 +650,6 @@ resource "aws_codepipeline" "cds_pipeline" {
     }
   }
 
-  # Gate: a human must review staging before production is touched
   stage {
     name = "Approve-Production"
 
@@ -660,13 +661,12 @@ resource "aws_codepipeline" "cds_pipeline" {
       version  = "1"
 
       configuration = {
-        CustomData      = "Review staging at https://${var.staging_domain_name} then approve to deploy to production."
+        CustomData      = "Review staging at ${var.staging_portal_url} then approve to deploy to production."
         NotificationArn = var.approval_notification_arn != "" ? var.approval_notification_arn : null
       }
     }
   }
 
-  # Re-tag commit-SHA images as :latest and update production services in parallel
   stage {
     name = "Deploy-Production"
 
@@ -705,14 +705,10 @@ resource "aws_codepipeline" "cds_pipeline" {
   }
 }
 
-# Data source for AWS account ID
-data "aws_caller_identity" "current" {}
-
-# CloudWatch Log Groups for CodeBuild
 resource "aws_cloudwatch_log_group" "codebuild_portal" {
   name              = "/aws/codebuild/${var.environment}-cds-portal-build"
-  retention_in_days = 7
-  log_group_class   = "INFREQUENT_ACCESS"
+  retention_in_days = 14
+  log_group_class   = "STANDARD"
 
   tags = {
     Name        = "${var.environment}-codebuild-portal-logs"
@@ -722,8 +718,8 @@ resource "aws_cloudwatch_log_group" "codebuild_portal" {
 
 resource "aws_cloudwatch_log_group" "codebuild_hubble" {
   name              = "/aws/codebuild/${var.environment}-cds-hubble-build"
-  retention_in_days = 7
-  log_group_class   = "INFREQUENT_ACCESS"
+  retention_in_days = 14
+  log_group_class   = "STANDARD"
 
   tags = {
     Name        = "${var.environment}-codebuild-hubble-logs"
