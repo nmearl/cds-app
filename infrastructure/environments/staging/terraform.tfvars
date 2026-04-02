@@ -18,6 +18,8 @@ use_capacity_provider_strategy    = false
 use_private_service_subnets       = false
 create_private_nat_gateways       = false
 log_group_class                   = "STANDARD"
+app_log_retention_days            = 3
+cloudfront_origin_protocol_policy = "http-only"
 
 cds_portal_cpu    = 256
 cds_portal_memory = 512

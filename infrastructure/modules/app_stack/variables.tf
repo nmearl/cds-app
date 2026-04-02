@@ -88,6 +88,18 @@ variable "log_group_class" {
   default     = "STANDARD"
 }
 
+variable "app_log_retention_days" {
+  description = "Retention in days for application CloudWatch log groups"
+  type        = number
+  default     = 7
+}
+
+variable "cloudfront_origin_protocol_policy" {
+  description = "Protocol policy CloudFront uses when connecting to the ALB origin"
+  type        = string
+  default     = "https-only"
+}
+
 variable "cds_portal_cpu" {
   description = "CPU units for the cds-portal task definition"
   type        = number

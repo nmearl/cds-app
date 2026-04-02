@@ -90,6 +90,12 @@ variable "log_group_class" {
   default     = "STANDARD"
 }
 
+variable "app_log_retention_days" {
+  description = "Retention in days for production application CloudWatch log groups"
+  type        = number
+  default     = 3
+}
+
 variable "cds_portal_cpu" {
   description = "CPU units for the cds-portal task definition"
   type        = number
