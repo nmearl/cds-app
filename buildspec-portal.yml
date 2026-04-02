@@ -28,5 +28,6 @@ phases:
 
 artifacts:
   files:
+    - buildspec-deploy.yml
     - imagedefinitions.json
     - commit_tag.txt
