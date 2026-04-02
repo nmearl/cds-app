@@ -16,7 +16,7 @@ phases:
   build:
     commands:
       - echo Building image $ECR_URI:$COMMIT_TAG
-      - docker build -f Dockerfile.portal -t $ECR_URI:$COMMIT_TAG .
+      - docker build -f docker/cds-portal/Dockerfile -t $ECR_URI:$COMMIT_TAG .
 
   post_build:
     commands:
