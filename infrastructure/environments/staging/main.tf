@@ -40,4 +40,6 @@ module "app_stack" {
   hubble_environment_vars           = var.hubble_environment_vars
   portal_secret_names               = var.portal_secret_names
   hubble_secret_names               = var.hubble_secret_names
+  portal_secret_source_arn          = var.portal_secret_source_arn
+  hubble_secret_source_arn          = var.hubble_secret_source_arn
 }

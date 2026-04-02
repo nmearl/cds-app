@@ -477,6 +477,28 @@ resource "aws_secretsmanager_secret" "cds_hubble_secrets" {
   }
 }
 
+data "aws_secretsmanager_secret_version" "portal_source" {
+  count     = var.portal_secret_source_arn != null ? 1 : 0
+  secret_id = var.portal_secret_source_arn
+}
+
+data "aws_secretsmanager_secret_version" "hubble_source" {
+  count     = var.hubble_secret_source_arn != null ? 1 : 0
+  secret_id = var.hubble_secret_source_arn
+}
+
+resource "aws_secretsmanager_secret_version" "cds_portal_seed" {
+  count         = var.portal_secret_source_arn != null ? 1 : 0
+  secret_id     = aws_secretsmanager_secret.cds_portal_secrets.id
+  secret_string = data.aws_secretsmanager_secret_version.portal_source[0].secret_string
+}
+
+resource "aws_secretsmanager_secret_version" "cds_hubble_seed" {
+  count         = var.hubble_secret_source_arn != null ? 1 : 0
+  secret_id     = aws_secretsmanager_secret.cds_hubble_secrets.id
+  secret_string = data.aws_secretsmanager_secret_version.hubble_source[0].secret_string
+}
+
 resource "aws_ssm_parameter" "cds_portal_env_vars" {
   for_each = var.portal_environment_vars
 
