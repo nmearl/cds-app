@@ -3,8 +3,10 @@ environment        = "staging"
 site_domain_name   = "staging.app.cosmicds.cfa.harvard.edu"
 certificate_domain = "*.app.cosmicds.cfa.harvard.edu"
 
-cds_portal_image = "072415053150.dkr.ecr.us-east-1.amazonaws.com/cds-portal:staging"
-cds_hubble_image = "072415053150.dkr.ecr.us-east-1.amazonaws.com/cds-hubble:staging"
+cds_portal_image         = "072415053150.dkr.ecr.us-east-1.amazonaws.com/cds-portal:staging"
+cds_hubble_image         = "072415053150.dkr.ecr.us-east-1.amazonaws.com/cds-hubble:staging"
+portal_secret_source_arn = "arn:aws:secretsmanager:us-east-1:072415053150:secret:production/cds-portal/secrets-U1KCLt"
+hubble_secret_source_arn = "arn:aws:secretsmanager:us-east-1:072415053150:secret:production/cds-hubble/secrets-SH3xIk"
 
 cds_portal_min_capacity           = 1
 cds_portal_max_capacity           = 2

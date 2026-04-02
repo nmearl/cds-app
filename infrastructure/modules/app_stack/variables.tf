@@ -150,6 +150,12 @@ variable "portal_secret_names" {
   ]
 }
 
+variable "portal_secret_source_arn" {
+  description = "Optional source Secrets Manager ARN used to seed the CDS Portal secret value"
+  type        = string
+  default     = null
+}
+
 variable "hubble_secret_names" {
   description = "Secret keys expected in the CDS Hubble secret"
   type        = list(string)
@@ -169,4 +175,10 @@ variable "hubble_secret_names" {
     "GOOGLE_ANALYTICS_TAG",
     "AWS_EBS_URL",
   ]
+}
+
+variable "hubble_secret_source_arn" {
+  description = "Optional source Secrets Manager ARN used to seed the CDS Hubble secret value"
+  type        = string
+  default     = null
 }
