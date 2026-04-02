@@ -1,23 +1,13 @@
-terraform {
-  required_version = ">= 1.0"
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
-provider "aws" {
-  region = var.aws_region
-}
-
-# Data sources
 data "aws_availability_zones" "available" {
   state = "available"
 }
 
-# VPC
+data "aws_acm_certificate" "site" {
+  domain      = var.certificate_domain
+  statuses    = ["ISSUED"]
+  most_recent = true
+}
+
 resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_hostnames = true
@@ -29,7 +19,6 @@ resource "aws_vpc" "main" {
   }
 }
 
-# Internet Gateway
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
@@ -39,7 +28,6 @@ resource "aws_internet_gateway" "main" {
   }
 }
 
-# Public Subnets
 resource "aws_subnet" "public" {
   count = 2
 
@@ -55,7 +43,6 @@ resource "aws_subnet" "public" {
   }
 }
 
-# Private Subnets
 resource "aws_subnet" "private" {
   count = 2
 
@@ -70,11 +57,11 @@ resource "aws_subnet" "private" {
   }
 }
 
-# NAT Gateways
 resource "aws_eip" "nat" {
-  count = 2
+  count = var.create_private_nat_gateways ? 2 : 0
 
   domain = "vpc"
+
   depends_on = [aws_internet_gateway.main]
 
   tags = {
@@ -84,20 +71,19 @@ resource "aws_eip" "nat" {
 }
 
 resource "aws_nat_gateway" "main" {
-  count = 2
+  count = var.create_private_nat_gateways ? 2 : 0
 
   allocation_id = aws_eip.nat[count.index].id
   subnet_id     = aws_subnet.public[count.index].id
+
+  depends_on = [aws_internet_gateway.main]
 
   tags = {
     Name        = "${var.environment}-nat-gateway-${count.index + 1}"
     Environment = var.environment
   }
-
-  depends_on = [aws_internet_gateway.main]
 }
 
-# Route Tables
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
@@ -113,7 +99,7 @@ resource "aws_route_table" "public" {
 }
 
 resource "aws_route_table" "private" {
-  count = 2
+  count = var.create_private_nat_gateways ? 2 : 0
 
   vpc_id = aws_vpc.main.id
 
@@ -128,7 +114,6 @@ resource "aws_route_table" "private" {
   }
 }
 
-# Route Table Associations
 resource "aws_route_table_association" "public" {
   count = 2
 
@@ -137,19 +122,18 @@ resource "aws_route_table_association" "public" {
 }
 
 resource "aws_route_table_association" "private" {
-  count = 2
+  count = var.create_private_nat_gateways ? 2 : 0
 
   subnet_id      = aws_subnet.private[count.index].id
   route_table_id = aws_route_table.private[count.index].id
 }
 
-# Security Groups
 resource "aws_security_group" "alb" {
   name_prefix = "${var.environment}-alb-"
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    description = "HTTP from CloudFront and direct access"
+    description = "HTTP"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
@@ -157,7 +141,7 @@ resource "aws_security_group" "alb" {
   }
 
   ingress {
-    description = "HTTPS from CloudFront and direct access"
+    description = "HTTPS"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
@@ -210,7 +194,6 @@ resource "aws_security_group" "ecs_tasks" {
   }
 }
 
-# Application Load Balancer
 resource "aws_lb" "main" {
   name               = "${var.environment}-alb"
   internal           = false
@@ -226,7 +209,6 @@ resource "aws_lb" "main" {
   }
 }
 
-# Target Groups
 resource "aws_lb_target_group" "cds_portal" {
   name        = "${var.environment}-cds-portal-tg"
   port        = 8865
@@ -277,58 +259,33 @@ resource "aws_lb_target_group" "cds_hubble" {
   }
 }
 
-# Load Balancer Listener
-resource "aws_lb_listener" "main" {
+resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
   port              = "80"
   protocol          = "HTTP"
 
   default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.cds_portal.arn
-  }
+    type = "redirect"
 
-  tags = {
-    Name        = "${var.environment}-listener"
-    Environment = var.environment
-  }
-}
-
-# Listener Rules
-resource "aws_lb_listener_rule" "cds_hubble" {
-  listener_arn = aws_lb_listener.main.arn
-  priority     = 100
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.cds_hubble.arn
-  }
-
-  condition {
-    path_pattern {
-      values = ["/hubbles-law*"]
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
     }
   }
 
   tags = {
-    Name        = "${var.environment}-hubble-rule"
+    Name        = "${var.environment}-http-listener"
     Environment = var.environment
   }
 }
 
-# ACM Certificate for ALB (using existing imported certificate)
-data "aws_acm_certificate" "alb" {
-  domain   = var.alb_domain_name
-  statuses = ["ISSUED"]
-}
-
-# HTTPS Listener
 resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.main.arn
   port              = "443"
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-  certificate_arn   = data.aws_acm_certificate.alb.arn
+  certificate_arn   = data.aws_acm_certificate.site.arn
 
   default_action {
     type             = "forward"
@@ -341,7 +298,6 @@ resource "aws_lb_listener" "https" {
   }
 }
 
-# HTTPS Listener Rule for Hubble
 resource "aws_lb_listener_rule" "cds_hubble_https" {
   listener_arn = aws_lb_listener.https.arn
   priority     = 100
@@ -363,23 +319,13 @@ resource "aws_lb_listener_rule" "cds_hubble_https" {
   }
 }
 
-# CloudFront Origin Access Control for ALB
-resource "aws_cloudfront_origin_access_control" "alb" {
-  name                              = "${var.environment}-alb-oac"
-  description                       = "Origin Access Control for ALB"
-  origin_access_control_origin_type = "mediapackagev2"
-  signing_behavior                  = "always"
-  signing_protocol                  = "sigv4"
-}
-
-# CloudFront Distribution
 resource "aws_cloudfront_distribution" "apps" {
   enabled             = true
   is_ipv6_enabled     = true
   default_root_object = ""
   comment             = "${var.environment} CloudFront distribution for CDS applications"
   price_class         = "PriceClass_100"
-  aliases             = [var.alb_domain_name]
+  aliases             = [var.site_domain_name]
 
   origin {
     domain_name = aws_lb.main.dns_name
@@ -394,14 +340,8 @@ resource "aws_cloudfront_distribution" "apps" {
       origin_keepalive_timeout = 60
       origin_read_timeout      = 60
     }
-
-    custom_header {
-      name  = "X-CloudFront-Secret"
-      value = local.cloudfront_secret
-    }
   }
 
-  # Default cache behavior for CDS Portal
   default_cache_behavior {
     allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     cached_methods   = ["GET", "HEAD", "OPTIONS"]
@@ -423,7 +363,6 @@ resource "aws_cloudfront_distribution" "apps" {
     compress               = true
   }
 
-  # Cache behavior for CDS Hubble
   ordered_cache_behavior {
     path_pattern     = "/hubbles-law*"
     allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
@@ -446,7 +385,6 @@ resource "aws_cloudfront_distribution" "apps" {
     compress               = true
   }
 
-  # Cache behavior for static assets (if any)
   ordered_cache_behavior {
     path_pattern     = "/static/*"
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
@@ -476,7 +414,7 @@ resource "aws_cloudfront_distribution" "apps" {
   }
 
   viewer_certificate {
-    acm_certificate_arn      = data.aws_acm_certificate.alb.arn
+    acm_certificate_arn      = data.aws_acm_certificate.site.arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2021"
   }
@@ -487,7 +425,6 @@ resource "aws_cloudfront_distribution" "apps" {
   }
 }
 
-# ECS Cluster
 resource "aws_ecs_cluster" "main" {
   name = "${var.environment}-cluster"
 
@@ -502,7 +439,24 @@ resource "aws_ecs_cluster" "main" {
   }
 }
 
-# Secrets Manager for sensitive environment variables
+locals {
+  service_subnet_ids = var.use_private_service_subnets ? aws_subnet.private[*].id : aws_subnet.public[*].id
+  assign_public_ip   = var.use_private_service_subnets ? false : true
+}
+
+resource "aws_ecs_cluster_capacity_providers" "main" {
+  count = var.enable_cluster_capacity_providers ? 1 : 0
+
+  cluster_name       = aws_ecs_cluster.main.name
+  capacity_providers = ["FARGATE", "FARGATE_SPOT"]
+
+  default_capacity_provider_strategy {
+    capacity_provider = "FARGATE"
+    base              = 1
+    weight            = 1
+  }
+}
+
 resource "aws_secretsmanager_secret" "cds_portal_secrets" {
   name        = "${var.environment}/cds-portal/secrets"
   description = "Secrets for CDS Portal application"
@@ -523,12 +477,8 @@ resource "aws_secretsmanager_secret" "cds_hubble_secrets" {
   }
 }
 
-# Parameter Store for non-sensitive environment variables
 resource "aws_ssm_parameter" "cds_portal_env_vars" {
-  for_each = {
-    "NODE_ENV"    = "production"
-    "LOG_LEVEL"   = "info"
-  }
+  for_each = var.portal_environment_vars
 
   name  = "/${var.environment}/cds-portal/env/${each.key}"
   type  = "String"
@@ -542,10 +492,7 @@ resource "aws_ssm_parameter" "cds_portal_env_vars" {
 }
 
 resource "aws_ssm_parameter" "cds_hubble_env_vars" {
-  for_each = {
-    "NODE_ENV"    = "production"
-    "LOG_LEVEL"   = "info"
-  }
+  for_each = var.hubble_environment_vars
 
   name  = "/${var.environment}/cds-hubble/env/${each.key}"
   type  = "String"
@@ -558,7 +505,6 @@ resource "aws_ssm_parameter" "cds_hubble_env_vars" {
   }
 }
 
-# ECS Task Execution Role
 resource "aws_iam_role" "ecs_task_execution_role" {
   name = "${var.environment}-ecs-task-execution-role"
 
@@ -586,7 +532,6 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-# Additional policy for accessing Secrets Manager and Parameter Store
 resource "aws_iam_role_policy" "ecs_secrets_policy" {
   name = "${var.environment}-ecs-secrets-policy"
   role = aws_iam_role.ecs_task_execution_role.id
@@ -619,19 +564,40 @@ resource "aws_iam_role_policy" "ecs_secrets_policy" {
   })
 }
 
-# ECS Task Definitions
+resource "aws_cloudwatch_log_group" "cds_portal" {
+  name              = "/ecs/${var.environment}-cds-portal"
+  retention_in_days = 7
+  log_group_class   = var.log_group_class
+
+  tags = {
+    Name        = "${var.environment}-cds-portal-logs"
+    Environment = var.environment
+  }
+}
+
+resource "aws_cloudwatch_log_group" "cds_hubble" {
+  name              = "/ecs/${var.environment}-cds-hubble"
+  retention_in_days = 7
+  log_group_class   = var.log_group_class
+
+  tags = {
+    Name        = "${var.environment}-cds-hubble-logs"
+    Environment = var.environment
+  }
+}
+
 resource "aws_ecs_task_definition" "cds_portal" {
   family                   = "${var.environment}-cds-portal"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = 256
-  memory                   = 512
+  cpu                      = var.cds_portal_cpu
+  memory                   = var.cds_portal_memory
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([
     {
       name  = "cds-portal"
-      image = "${aws_ecr_repository.cds_portal.repository_url}:latest"
+      image = var.cds_portal_image
       portMappings = [
         {
           containerPort = 8865
@@ -639,69 +605,18 @@ resource "aws_ecs_task_definition" "cds_portal" {
         }
       ]
       essential = true
-
       environment = [
-        {
-          name  = "NODE_ENV"
-          value = "production"
+        for key, value in var.portal_environment_vars : {
+          name  = key
+          value = value
         }
       ]
-
       secrets = [
-        {
-          name      = "SOLARA_SESSION_SECRET_KEY"
-          valueFrom = "${aws_secretsmanager_secret.cds_portal_secrets.arn}:SOLARA_SESSION_SECRET_KEY::"
-        },
-        {
-          name      = "SOLARA_OAUTH_CLIENT_ID"
-          valueFrom = "${aws_secretsmanager_secret.cds_portal_secrets.arn}:SOLARA_OAUTH_CLIENT_ID::"
-        },
-        {
-          name      = "SOLARA_OAUTH_CLIENT_SECRET"
-          valueFrom = "${aws_secretsmanager_secret.cds_portal_secrets.arn}:SOLARA_OAUTH_CLIENT_SECRET::"
-        },
-        {
-          name      = "SOLARA_OAUTH_API_BASE_URL"
-          valueFrom = "${aws_secretsmanager_secret.cds_portal_secrets.arn}:SOLARA_OAUTH_API_BASE_URL::"
-        },
-        {
-          name      = "SOLARA_OAUTH_SCOPE"
-          valueFrom = "${aws_secretsmanager_secret.cds_portal_secrets.arn}:SOLARA_OAUTH_SCOPE::"
-        },
-        {
-          name      = "SOLARA_SESSION_HTTPS_ONLY"
-          valueFrom = "${aws_secretsmanager_secret.cds_portal_secrets.arn}:SOLARA_SESSION_HTTPS_ONLY::"
-        },
-        {
-          name      = "CDS_API_KEY"
-          valueFrom = "${aws_secretsmanager_secret.cds_portal_secrets.arn}:CDS_API_KEY::"
-        },
-        {
-          name      = "SOLARA_APP"
-          valueFrom = "${aws_secretsmanager_secret.cds_portal_secrets.arn}:SOLARA_APP::"
-        },
-        {
-          name      = "SOLARA_BASE_URL"
-          valueFrom = "${aws_secretsmanager_secret.cds_portal_secrets.arn}:SOLARA_BASE_URL::"
-        },
-        {
-          name      = "AWS_EBS_URL"
-          valueFrom = "${aws_secretsmanager_secret.cds_portal_secrets.arn}:AWS_EBS_URL::"
-        },
-        {
-          name      = "EMAIL_PASSWORD"
-          valueFrom = "${aws_secretsmanager_secret.cds_portal_secrets.arn}:EMAIL_PASSWORD::"
-        },
-        {
-          name      = "EMAIL_SERVICE"
-          valueFrom = "${aws_secretsmanager_secret.cds_portal_secrets.arn}:EMAIL_SERVICE::"
-        },
-        {
-          name      = "EMAIL_USERNAME"
-          valueFrom = "${aws_secretsmanager_secret.cds_portal_secrets.arn}:EMAIL_USERNAME::"
+        for secret_name in var.portal_secret_names : {
+          name      = secret_name
+          valueFrom = "${aws_secretsmanager_secret.cds_portal_secrets.arn}:${secret_name}::"
         }
       ]
-
       logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -723,14 +638,14 @@ resource "aws_ecs_task_definition" "cds_hubble" {
   family                   = "${var.environment}-cds-hubble"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = 1024
-  memory                   = 2048
+  cpu                      = var.cds_hubble_cpu
+  memory                   = var.cds_hubble_memory
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([
     {
       name  = "cds-hubble"
-      image = "${aws_ecr_repository.cds_hubble.repository_url}:latest"
+      image = var.cds_hubble_image
       portMappings = [
         {
           containerPort = 8765
@@ -738,73 +653,18 @@ resource "aws_ecs_task_definition" "cds_hubble" {
         }
       ]
       essential = true
-
       environment = [
-        {
-          name  = "NODE_ENV"
-          value = "production"
+        for key, value in var.hubble_environment_vars : {
+          name  = key
+          value = value
         }
       ]
-
       secrets = [
-        {
-          name      = "SOLARA_SESSION_SECRET_KEY"
-          valueFrom = "${aws_secretsmanager_secret.cds_hubble_secrets.arn}:SOLARA_SESSION_SECRET_KEY::"
-        },
-        {
-          name      = "SOLARA_OAUTH_CLIENT_ID"
-          valueFrom = "${aws_secretsmanager_secret.cds_hubble_secrets.arn}:SOLARA_OAUTH_CLIENT_ID::"
-        },
-        {
-          name      = "SOLARA_OAUTH_CLIENT_SECRET"
-          valueFrom = "${aws_secretsmanager_secret.cds_hubble_secrets.arn}:SOLARA_OAUTH_CLIENT_SECRET::"
-        },
-        {
-          name      = "SOLARA_OAUTH_API_BASE_URL"
-          valueFrom = "${aws_secretsmanager_secret.cds_hubble_secrets.arn}:SOLARA_OAUTH_API_BASE_URL::"
-        },
-        {
-          name      = "SOLARA_OAUTH_SCOPE"
-          valueFrom = "${aws_secretsmanager_secret.cds_hubble_secrets.arn}:SOLARA_OAUTH_SCOPE::"
-        },
-        {
-          name      = "SOLARA_SESSION_HTTPS_ONLY"
-          valueFrom = "${aws_secretsmanager_secret.cds_hubble_secrets.arn}:SOLARA_SESSION_HTTPS_ONLY::"
-        },
-        {
-          name      = "CDS_API_KEY"
-          valueFrom = "${aws_secretsmanager_secret.cds_hubble_secrets.arn}:CDS_API_KEY::"
-        },
-        {
-          name      = "SOLARA_OAUTH_PRIVATE"
-          valueFrom = "${aws_secretsmanager_secret.cds_hubble_secrets.arn}:SOLARA_OAUTH_PRIVATE::"
-        },
-        {
-          name      = "SOLARA_APP"
-          valueFrom = "${aws_secretsmanager_secret.cds_hubble_secrets.arn}:SOLARA_APP::"
-        },
-        {
-          name      = "SOLARA_ROOT_PATH"
-          valueFrom = "${aws_secretsmanager_secret.cds_hubble_secrets.arn}:SOLARA_ROOT_PATH::"
-        },
-        {
-          name      = "SOLARA_BASE_URL"
-          valueFrom = "${aws_secretsmanager_secret.cds_hubble_secrets.arn}:SOLARA_BASE_URL::"
-        },
-        {
-          name      = "CDS_SHOW_TEAM_INTERFACE"
-          valueFrom = "${aws_secretsmanager_secret.cds_hubble_secrets.arn}:CDS_SHOW_TEAM_INTERFACE::"
-        },
-        {
-          name      = "GOOGLE_ANALYTICS_TAG"
-          valueFrom = "${aws_secretsmanager_secret.cds_hubble_secrets.arn}:GOOGLE_ANALYTICS_TAG::"
-        },
-        {
-          name      = "AWS_EBS_URL"
-          valueFrom = "${aws_secretsmanager_secret.cds_hubble_secrets.arn}:AWS_EBS_URL::"
+        for secret_name in var.hubble_secret_names : {
+          name      = secret_name
+          valueFrom = "${aws_secretsmanager_secret.cds_hubble_secrets.arn}:${secret_name}::"
         }
       ]
-
       logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -822,39 +682,38 @@ resource "aws_ecs_task_definition" "cds_hubble" {
   }
 }
 
-# CloudWatch Log Groups
-resource "aws_cloudwatch_log_group" "cds_portal" {
-  name              = "/ecs/${var.environment}-cds-portal"
-  retention_in_days = 7
-
-  tags = {
-    Name        = "${var.environment}-cds-portal-logs"
-    Environment = var.environment
-  }
-}
-
-resource "aws_cloudwatch_log_group" "cds_hubble" {
-  name              = "/ecs/${var.environment}-cds-hubble"
-  retention_in_days = 7
-
-  tags = {
-    Name        = "${var.environment}-cds-hubble-logs"
-    Environment = var.environment
-  }
-}
-
-# ECS Services
 resource "aws_ecs_service" "cds_portal" {
   name            = "${var.environment}-cds-portal"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.cds_portal.arn
   desired_count   = var.cds_portal_min_capacity
-  launch_type     = "FARGATE"
+  launch_type     = var.use_capacity_provider_strategy ? null : "FARGATE"
+
+  dynamic "capacity_provider_strategy" {
+    for_each = var.use_capacity_provider_strategy ? [
+      {
+        capacity_provider = "FARGATE"
+        base              = 1
+        weight            = 1
+      },
+      {
+        capacity_provider = "FARGATE_SPOT"
+        base              = 0
+        weight            = 4
+      }
+    ] : []
+
+    content {
+      capacity_provider = capacity_provider_strategy.value.capacity_provider
+      base              = capacity_provider_strategy.value.base
+      weight            = capacity_provider_strategy.value.weight
+    }
+  }
 
   network_configuration {
     security_groups  = [aws_security_group.ecs_tasks.id]
-    subnets          = aws_subnet.private[*].id
-    assign_public_ip = false
+    subnets          = local.service_subnet_ids
+    assign_public_ip = local.assign_public_ip
   }
 
   load_balancer {
@@ -863,7 +722,7 @@ resource "aws_ecs_service" "cds_portal" {
     container_port   = 8865
   }
 
-  depends_on = [aws_lb_listener.main]
+  depends_on = [aws_lb_listener.https]
 
   tags = {
     Name        = "${var.environment}-cds-portal-service"
@@ -876,12 +735,33 @@ resource "aws_ecs_service" "cds_hubble" {
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.cds_hubble.arn
   desired_count   = var.cds_hubble_min_capacity
-  launch_type     = "FARGATE"
+  launch_type     = var.use_capacity_provider_strategy ? null : "FARGATE"
+
+  dynamic "capacity_provider_strategy" {
+    for_each = var.use_capacity_provider_strategy ? [
+      {
+        capacity_provider = "FARGATE"
+        base              = 1
+        weight            = 1
+      },
+      {
+        capacity_provider = "FARGATE_SPOT"
+        base              = 0
+        weight            = 4
+      }
+    ] : []
+
+    content {
+      capacity_provider = capacity_provider_strategy.value.capacity_provider
+      base              = capacity_provider_strategy.value.base
+      weight            = capacity_provider_strategy.value.weight
+    }
+  }
 
   network_configuration {
     security_groups  = [aws_security_group.ecs_tasks.id]
-    subnets          = aws_subnet.private[*].id
-    assign_public_ip = false
+    subnets          = local.service_subnet_ids
+    assign_public_ip = local.assign_public_ip
   }
 
   load_balancer {
@@ -890,7 +770,7 @@ resource "aws_ecs_service" "cds_hubble" {
     container_port   = 8765
   }
 
-  depends_on = [aws_lb_listener.main]
+  depends_on = [aws_lb_listener.https]
 
   tags = {
     Name        = "${var.environment}-cds-hubble-service"
@@ -898,8 +778,9 @@ resource "aws_ecs_service" "cds_hubble" {
   }
 }
 
-# Auto Scaling Resources
 resource "aws_appautoscaling_target" "cds_portal" {
+  count = var.enable_autoscaling ? 1 : 0
+
   max_capacity       = var.cds_portal_max_capacity
   min_capacity       = var.cds_portal_min_capacity
   resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.cds_portal.name}"
@@ -913,6 +794,8 @@ resource "aws_appautoscaling_target" "cds_portal" {
 }
 
 resource "aws_appautoscaling_target" "cds_hubble" {
+  count = var.enable_autoscaling ? 1 : 0
+
   max_capacity       = var.cds_hubble_max_capacity
   min_capacity       = var.cds_hubble_min_capacity
   resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.cds_hubble.name}"
@@ -925,13 +808,14 @@ resource "aws_appautoscaling_target" "cds_hubble" {
   }
 }
 
-# Auto Scaling Policies - CPU Based
 resource "aws_appautoscaling_policy" "cds_portal_cpu" {
+  count = var.enable_autoscaling ? 1 : 0
+
   name               = "${var.environment}-cds-portal-cpu-scaling"
   policy_type        = "TargetTrackingScaling"
-  resource_id        = aws_appautoscaling_target.cds_portal.resource_id
-  scalable_dimension = aws_appautoscaling_target.cds_portal.scalable_dimension
-  service_namespace  = aws_appautoscaling_target.cds_portal.service_namespace
+  resource_id        = aws_appautoscaling_target.cds_portal[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.cds_portal[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.cds_portal[0].service_namespace
 
   target_tracking_scaling_policy_configuration {
     predefined_metric_specification {
@@ -940,15 +824,37 @@ resource "aws_appautoscaling_policy" "cds_portal_cpu" {
     target_value       = 70.0
     scale_in_cooldown  = 300
     scale_out_cooldown = 300
+  }
+}
+
+resource "aws_appautoscaling_policy" "cds_portal_requests" {
+  count = var.enable_autoscaling ? 1 : 0
+
+  name               = "${var.environment}-cds-portal-request-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.cds_portal[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.cds_portal[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.cds_portal[0].service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ALBRequestCountPerTarget"
+      resource_label         = "${aws_lb.main.arn_suffix}/${aws_lb_target_group.cds_portal.arn_suffix}"
+    }
+    target_value       = 500
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
   }
 }
 
 resource "aws_appautoscaling_policy" "cds_hubble_cpu" {
+  count = var.enable_autoscaling ? 1 : 0
+
   name               = "${var.environment}-cds-hubble-cpu-scaling"
   policy_type        = "TargetTrackingScaling"
-  resource_id        = aws_appautoscaling_target.cds_hubble.resource_id
-  scalable_dimension = aws_appautoscaling_target.cds_hubble.scalable_dimension
-  service_namespace  = aws_appautoscaling_target.cds_hubble.service_namespace
+  resource_id        = aws_appautoscaling_target.cds_hubble[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.cds_hubble[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.cds_hubble[0].service_namespace
 
   target_tracking_scaling_policy_configuration {
     predefined_metric_specification {
@@ -960,26 +866,22 @@ resource "aws_appautoscaling_policy" "cds_hubble_cpu" {
   }
 }
 
-# Generate a random secret for CloudFront
-resource "random_password" "cloudfront_secret" {
-  count   = var.cloudfront_secret == "" ? 1 : 0
-  length  = 32
-  special = true
-}
+resource "aws_appautoscaling_policy" "cds_hubble_requests" {
+  count = var.enable_autoscaling ? 1 : 0
 
-# Store the secret in Parameter Store for reference
-resource "aws_ssm_parameter" "cloudfront_secret" {
-  name  = "/${var.environment}/cloudfront/secret"
-  type  = "SecureString"
-  value = var.cloudfront_secret != "" ? var.cloudfront_secret : random_password.cloudfront_secret[0].result
+  name               = "${var.environment}-cds-hubble-request-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.cds_hubble[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.cds_hubble[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.cds_hubble[0].service_namespace
 
-  tags = {
-    Name        = "${var.environment}-cloudfront-secret"
-    Environment = var.environment
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ALBRequestCountPerTarget"
+      resource_label         = "${aws_lb.main.arn_suffix}/${aws_lb_target_group.cds_hubble.arn_suffix}"
+    }
+    target_value       = 500
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
   }
-}
-
-# Use the secret in CloudFront
-locals {
-  cloudfront_secret = var.cloudfront_secret != "" ? var.cloudfront_secret : random_password.cloudfront_secret[0].result
 }

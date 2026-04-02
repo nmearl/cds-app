@@ -1,38 +1,31 @@
 version: 0.2
 
+# Builds the CDS Hubble Docker image and pushes it to ECR tagged with the
+# commit SHA (e.g. commit-abc1234). Downstream deploy buildspecs re-tag
+# this image as :staging or :latest so every environment runs the exact
+# same artifact that was built here.
+
 phases:
-  install:
-    runtime-versions:
-      python: 3.9
   pre_build:
     commands:
-      - rm -f .python-version
       - echo Logging in to Amazon ECR...
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
-      - REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
-      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-      - IMAGE_TAG=${COMMIT_HASH:=latest}
+      - COMMIT_TAG="commit-$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-8)"
+      - ECR_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
+
   build:
     commands:
-      - echo Build started on `date`
-      - echo Building the Docker image for CDS Hubble...
-      - docker build -t cds-hubble:latest -f docker/cds-hubble/Dockerfile .
-      - docker tag cds-hubble:latest $REPOSITORY_URI:latest
-      - docker tag cds-hubble:latest $REPOSITORY_URI:$IMAGE_TAG
+      - echo Building image $ECR_URI:$COMMIT_TAG
+      - docker build -f Dockerfile.hubble -t $ECR_URI:$COMMIT_TAG .
+
   post_build:
     commands:
-      - echo Build completed on `date`
-      - echo Pushing the Docker images...
-      - docker push $REPOSITORY_URI:latest
-      - docker push $REPOSITORY_URI:$IMAGE_TAG
-      - echo Writing image definitions file...
-      - printf '[{"name":"%s","imageUri":"%s"}]' $CONTAINER_NAME $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
-      - echo Updating ECS service...
-      - |
-        aws ecs update-service \
-          --cluster $ECS_CLUSTER_NAME \
-          --service $ECS_SERVICE_NAME \
-          --force-new-deployment
+      - echo Pushing image...
+      - docker push $ECR_URI:$COMMIT_TAG
+      - echo $COMMIT_TAG > commit_tag.txt
+      - printf '[{"name":"cds-hubble","imageUri":"%s:%s"}]' "$ECR_URI" "$COMMIT_TAG" > imagedefinitions.json
+
 artifacts:
   files:
     - imagedefinitions.json
+    - commit_tag.txt

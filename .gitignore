@@ -16,3 +16,9 @@ wheels/
 .DS_Store
 .vscode/
 .env
+
+# Terraform
+**/.terraform/
+**/.terraform-state/
+**/*.tfstate
+**/*.tfstate.*
