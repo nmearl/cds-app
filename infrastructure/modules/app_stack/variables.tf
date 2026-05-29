@@ -64,6 +64,12 @@ variable "enable_cluster_capacity_providers" {
   default     = false
 }
 
+variable "enable_container_insights" {
+  description = "Whether to enable ECS Container Insights for the cluster"
+  type        = bool
+  default     = false
+}
+
 variable "use_capacity_provider_strategy" {
   description = "Whether ECS services should use capacity provider strategy instead of launch_type"
   type        = bool

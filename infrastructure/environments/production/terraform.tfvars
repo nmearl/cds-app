@@ -11,6 +11,7 @@ cds_portal_max_capacity           = 3
 cds_hubble_min_capacity           = 2
 cds_hubble_max_capacity           = 4
 enable_cluster_capacity_providers = false
+enable_container_insights         = false
 use_capacity_provider_strategy    = false
 create_private_nat_gateways       = false
 use_private_service_subnets       = false

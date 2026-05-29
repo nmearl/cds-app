@@ -14,6 +14,7 @@ cds_hubble_min_capacity           = 1
 cds_hubble_max_capacity           = 2
 enable_autoscaling                = false
 enable_cluster_capacity_providers = false
+enable_container_insights         = false
 use_capacity_provider_strategy    = false
 use_private_service_subnets       = false
 create_private_nat_gateways       = false
