@@ -7,12 +7,17 @@ import os
 def hash_user(user_ref: str, secret_key: str | None = None) -> str:
     """Hash a user identifier (email or name) for API requests.
 
-    Args:
-        user_ref: The user's email or display name.
-        secret_key: The session secret. Defaults to the
-            ``SOLARA_SESSION_SECRET_KEY`` environment variable.
+    Parameters
+    ----------
+    user_ref : str
+        The user's email or display name.
+    secret_key : str, optional
+        The session secret. Defaults to the
+        ``SOLARA_SESSION_SECRET_KEY`` environment variable.
 
-    Returns:
+    Returns
+    -------
+    str
         A hex-encoded SHA-1 hash used as the API username.
     """
     secret = secret_key or os.environ.get("SOLARA_SESSION_SECRET_KEY", "")
@@ -24,10 +29,14 @@ def get_hashed_user(secret_key: str | None = None) -> str | None:
 
     Requires ``solara-enterprise`` to be installed and a user to be logged in.
 
-    Args:
-        secret_key: Override for ``SOLARA_SESSION_SECRET_KEY``.
+    Parameters
+    ----------
+    secret_key : str, optional
+        Override for ``SOLARA_SESSION_SECRET_KEY``.
 
-    Returns:
+    Returns
+    -------
+    str or None
         The hashed user string, or ``None`` if auth is unavailable/unauthenticated.
     """
     try:

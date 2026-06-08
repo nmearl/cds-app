@@ -28,26 +28,24 @@ class HubbleClient:
 class CDSClient:
     """Main entry point for the CosmicDS API.
 
-    Args:
-        api_key: API key sent as the ``Authorization`` header.  Defaults to the
-            ``CDS_API_KEY`` environment variable.
-        base_url: Override the default API base URL
-            (``https://api.cosmicds.cfa.harvard.edu``).
+    Parameters
+    ----------
+    api_key : str, optional
+        API key sent as the ``Authorization`` header.  Defaults to the
+        ``CDS_API_KEY`` environment variable.
+    base_url : str, optional
+        Override the default API base URL
+        (``https://api.cosmicds.cfa.harvard.edu``).
 
-    Usage::
-
-        from cds_client import CDSClient
-
-        client = CDSClient()
-
-        # Core endpoints
-        student = client.students.get("abc123hash")
-        classes = client.classes.get_roster(class_id=5)
-        state   = client.stories.get_story_state(student_id=7, story_name="hubbles_law")
-
-        # Hubble's Law sub-client
-        galaxies     = client.hubble.galaxies.list(types=["Sp"])
-        measurements = client.hubble.measurements.get(student_id=7)
+    Examples
+    --------
+    >>> from cds_client import CDSClient
+    >>> client = CDSClient()
+    >>> student = client.students.get("abc123hash")
+    >>> classes = client.classes.get_roster(class_id=5)
+    >>> state = client.stories.get_story_state(student_id=7, story_name="hubbles_law")
+    >>> galaxies = client.hubble.galaxies.get_all(types=["Sp"])
+    >>> measurements = client.hubble.measurements.get(student_id=7)
     """
 
     def __init__(

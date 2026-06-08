@@ -11,11 +11,15 @@ from .exceptions import CDSAPIError, CDSAuthError, CDSNotFoundError, CDSConflict
 class CDSSession:
     """Authenticated HTTP session for the CosmicDS API.
 
-    Args:
-        api_key: API key sent as the ``Authorization`` header.  Defaults to the
-            ``CDS_API_KEY`` environment variable.
-        base_url: Override the default API base URL.
-        prefix: Optional path prefix appended to ``base_url`` (e.g. ``/hubbles_law``).
+    Parameters
+    ----------
+    api_key : str, optional
+        API key sent as the ``Authorization`` header.  Defaults to the
+        ``CDS_API_KEY`` environment variable.
+    base_url : str, optional
+        Override the default API base URL.
+    prefix : str, optional
+        Optional path prefix appended to ``base_url`` (e.g. ``/hubbles_law``).
     """
 
     DEFAULT_BASE_URL = "https://api.cosmicds.cfa.harvard.edu"

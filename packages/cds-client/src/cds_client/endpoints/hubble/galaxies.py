@@ -14,11 +14,14 @@ class GalaxiesEndpoint(BaseEndpoint):
         types: list[str] | None = None,
         include_flags: bool = False,
     ) -> list[Galaxy]:
-        """Return the galaxy catalogue.
+        """Return the galaxy catalog.
 
-        Args:
-            types: Filter by galaxy type codes (e.g. ``["Sp"]`` for spirals).
-            include_flags: Include bad-data flag fields in the response.
+        Parameters
+        ----------
+        types : list of str, optional
+            Filter by galaxy type codes (e.g. ``["Sp"]`` for spirals).
+        include_flags : bool, optional
+            Include bad-data flag fields in the response.
         """
         params: dict = {"flags": include_flags}
         if types:
@@ -64,9 +67,12 @@ class GalaxiesEndpoint(BaseEndpoint):
     def get_spectrum(self, galaxy_type: str, name: str) -> SpectrumData:
         """Download and parse a galaxy spectrum FITS file.
 
-        Args:
-            galaxy_type: One of ``"spiral"``, ``"elliptical"``, or ``"irregular"``.
-            name: The FITS file name (with or without ``.fits`` extension).
+        Parameters
+        ----------
+        galaxy_type : str
+            One of ``"spiral"``, ``"elliptical"``, or ``"irregular"``.
+        name : str
+            The FITS file name (with or without ``.fits`` extension).
         """
         try:
             from astropy.io import fits  # type: ignore[import]
