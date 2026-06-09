@@ -4,13 +4,18 @@ from solara.alias import rv
 
 from ..state import get_portal_state
 
+STORY_MAP = {
+    "Hubble's Law": "hubbles_law"
+}
+
 
 @solara.component
-def CreateClassDialog():
+def CreateClassDialog(verified: bool):
     portal_state = get_portal_state()
     show = solara.use_reactive(False)
     class_name = solara.use_reactive("")
     expected_size = solara.use_reactive("30")
+    story_name = solara.use_reactive("")
     error = solara.use_reactive("")
     loading = solara.use_reactive(False)
 
@@ -38,7 +43,7 @@ def CreateClassDialog():
                     educator_id=educator.id,
                     name=name,
                     expected_size=size,
-                    story_name="hubbles_law",
+                    story_name=STORY_MAP[story_name.value],
                 )
             )
             portal_state.educator_classes = sorted(
@@ -54,12 +59,16 @@ def CreateClassDialog():
         finally:
             loading.set(False)
 
-    solara.Button(
-        label="Create Class",
-        icon_name="mdi-plus",
-        color="primary",
-        on_click=lambda: show.set(True),
+    create_button = rv.Btn(
+        children=["Create"],
+        class_="mr-2",
+        style_="height: 40px",
+        elevation=0,
+        color="success",
+        disabled=not verified,
     )
+
+    solara.v.use_event(create_button, "click", lambda *_: show.set(True))
 
     with rv.Dialog(
         v_model=show.value,
@@ -68,17 +77,27 @@ def CreateClassDialog():
         persistent=loading.value,
     ):
         with rv.Card():
-            rv.CardTitle(children=["New Class"])
+            rv.CardTitle(children=["Create a New Class"])
             with rv.CardText():
-                solara.InputText(
-                    "Class name",
-                    value=class_name.value,
-                    on_value=class_name.set,
+                rv.TextField(
+                    label="Class name",
+                    v_model=class_name.value,
+                    on_v_model=class_name.set,
+                    outlined=True,
                 )
-                solara.InputText(
-                    "Expected number of students",
-                    value=expected_size.value,
-                    on_value=expected_size.set,
+                rv.TextField(
+                    label="Expected number of students",
+                    v_model=expected_size.value,
+                    on_v_model=expected_size.set,
+                    outlined=True,
+                    type="number",
+                )
+                rv.Select(
+                    label="Story",
+                    items=list(STORY_MAP.keys()),
+                    v_model=story_name.value,
+                    on_v_model=story_name.set,
+                    outlined=True
                 )
                 if error.value:
                     solara.Text(error.value, style="color: #ff5252;")
