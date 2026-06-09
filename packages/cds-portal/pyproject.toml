@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Nicholas Earl", email = "contact@nicholasearl.me" }
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.13,<3.14"
 dependencies = [
     "astropy>=7.0.1",
     "authlib>=1.5.2",
@@ -34,4 +34,4 @@ cds-client = { workspace = true }
 cds-core = { workspace = true }
 cds-dashboard = { workspace = true }
 unique-namer = { git = "https://github.com/cosmicds/unique-namer" }
-solara-state = { git = "https://github.com/nmearl/solara-state.git" }
+solara-state = { git = "https://github.com/nmearl/solara-state" }

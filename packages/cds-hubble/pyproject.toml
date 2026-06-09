@@ -7,7 +7,7 @@ authors = [
     { name = "CosmicDS Developers", email = "pudomprasert@cfa.harvard.edu" }
 ]
 license = "MIT"
-requires-python = ">=3.13"
+requires-python = ">=3.13,<3.14"
 dependencies = [
     "astropy>=7.0.1",
     "authlib>=1.5.2",
