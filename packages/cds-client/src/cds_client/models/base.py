@@ -9,6 +9,7 @@ from ._generated_base import (
     Class as Classroom,  # avoid importing a name that reads like a keyword
     ClassCreated,
     ClassCreationInfo,
+    ClassStories,
     EducatorCreated,
     EducatorCreationInfo,
     Educator as _GeneratedEducator,
@@ -35,18 +36,29 @@ class Student(_GeneratedStudent):
     verification_code: str | None = None
     institution: str | None = None
     gender: str | None = None
+    ip: str | None = None
+    lat: str | None = None
+    lon: str | None = None
+    last_visit_ip: str | None = None
+    team_member: str | None = None
 
 
 class Educator(_GeneratedEducator):
     verification_code: str | None = None
     institution: str | None = None
     gender: str | None = None
+    ip: str | None = None
+    lat: str | None = None
+    lon: str | None = None
+    last_visit_ip: str | None = None
+
 
 __all__ = [
     "Classroom",
     "ClassCreated",
     "ClassCreationInfo",
     "ClassStatus",
+    "ClassStories",
     "CreationStatus",
     "Educator",
     "EducatorCreated",
