@@ -12,7 +12,7 @@ def EducatorButtonList(
         class_="mb-2",
         style_="width: 200px;",
         children=["Dashboard"],
-        href=f"/educator-dashboard?id={class_id}",
+        href=f"/dashboard?id={class_id}",
     )
     rv.Btn(
         class_="mb-2",
@@ -20,7 +20,7 @@ def EducatorButtonList(
         children=["Preview"],
         href="/hubbles-law",  # TODO: this needs to depend on the chosen story
     )
-    rv.Btn(class_="mb-2", style_="width: 200px;", children=["Modify"])
+    # rv.Btn(class_="mb-2", style_="width: 200px;", children=["Modify"])
     deactivate_btn = rv.Btn(
         style_="width: 200px;",
         children=["Deactivate"],
@@ -154,6 +154,7 @@ def ClassCard(
                         class_="mb-2",
                         style_="width: 200px;",
                         children=["Continue" if progress > 0 else "Start"],
+                        href="/hubbles-law",  # TODO: this needs to depend on the chosen story
                     )
 
         with rv.CardActions():

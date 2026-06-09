@@ -267,7 +267,7 @@ def Layout(children=[]):
                                     with rv.ListItemIcon():
                                         rv.Icon(children=["mdi-view-dashboard"])
                                     with rv.ListItemContent():
-                                        rv.ListItemTitle(children=["Dashboard"])
+                                        rv.ListItemTitle(children=["Overview"])
 
                                 with rv.ListItem(
                                     dense=True,

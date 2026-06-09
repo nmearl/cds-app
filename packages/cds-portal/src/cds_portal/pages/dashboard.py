@@ -50,4 +50,5 @@ def Page():
             solara.Markdown("You do not have access to this class.")
         return
 
-    EducatorDashboard(class_info_list=class_info_list)
+    with rv.Container():
+        EducatorDashboard(class_info_list=class_info_list)
