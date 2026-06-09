@@ -2,6 +2,7 @@
 #   filename:  https://api.cosmicds.cfa.harvard.edu/hubbles_law/docs.json
 #
 # DO NOT EDIT — regenerate with: scripts/generate_models.sh
+#   timestamp: 2026-06-09T01:28:57+00:00
 
 from __future__ import annotations
 
@@ -13,6 +14,7 @@ from pydantic import AwareDatetime, BaseModel, EmailStr, Field, RootModel
 
 class Educator(BaseModel):
     id: int
+    verified: bool
     verification_code: str
     email: str
     username: str
@@ -21,13 +23,13 @@ class Educator(BaseModel):
     password: str
     institution: str
     gender: str
-    ip: str | None = None
-    lat: str | None = None
-    lon: str | None = None
+    ip: str
+    lat: str
+    lon: str
     profile_created: AwareDatetime
     visits: int
     last_visit: AwareDatetime
-    last_visit_ip: str | None = None
+    last_visit_ip: str
 
 
 class Student(BaseModel):
@@ -38,14 +40,14 @@ class Student(BaseModel):
     password: str
     institution: str
     gender: str
-    ip: str | None = None
-    lat: str | None = None
-    lon: str | None = None
+    ip: str
+    lat: str
+    lon: str
     profile_created: AwareDatetime
     visits: int
     last_visit: AwareDatetime
-    last_visit_ip: str | None = None
-    team_member: str | None = None
+    last_visit_ip: str
+    team_member: str
     dummy: bool
 
 
@@ -104,6 +106,12 @@ class Question(BaseModel):
     answers_text: dict[str, Any]
     correct_answers: dict[str, Any]
     neutral_answers: dict[str, Any]
+
+
+class ClassStories(BaseModel):
+    class_id: int
+    story_name: str
+    active: bool
 
 
 class User(RootModel[Any]):
