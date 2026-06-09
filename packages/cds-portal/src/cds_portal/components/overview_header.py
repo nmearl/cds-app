@@ -21,7 +21,7 @@ def OverviewHeader(role: str):
             with rv.Col(cols="auto"):
                 rv.Chip(children=[role.title()], color="primary", outlined=True)
                 if role == "educator" and educator is not None:
-                    if educator.verification_code:
+                    if not educator.verified:
                         rv.Chip(
                             children=["Verification Pending"],
                             color="warning",

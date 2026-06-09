@@ -16,37 +16,72 @@ _STORY_NAME = "hubbles_law"
 IMG_PATH = Path("static") / "public" / "images"
 
 
-def _load_story_progress(portal, client, student):
+def _load_story_progress(portal, client, student) -> tuple[int, int]:
     stages = client.stories.get_stages(_STORY_NAME)
+    total = len(stages)
     portal.story_name = _STORY_NAME
-    portal.total_stages = len(stages)
+    portal.total_stages = total
+    completed = 0
     if student.id:
-        portal.completed_stages = client.stories.count_completed_stages(
-            _STORY_NAME, student.id
-        )
+        completed = client.stories.count_completed_stages(_STORY_NAME, student.id)
+        portal.completed_stages = completed
+    return total, completed
 
 
 def _load_student(portal, client, ref, student):
     portal.is_educator = False
     portal.needs_setup = False
     portal.student = student
-    portal.student_classes = client.students.get_classes(ref)
-    _load_story_progress(portal, client, student)
+    classes = client.students.get_classes(student.id, active_only=False)
+    portal.student_classes = classes
+
+    educator_names = {}
+    for cls in classes:
+        edu = client.educators.get(cls.educator_id)
+        if edu is not None:
+            educator_names[cls.id] = f"{edu.first_name} {edu.last_name}"
+    portal.class_educator_names = educator_names
+
+    total, completed = _load_story_progress(portal, client, student)
+    pct = completed / total * 100 if total > 0 else 0.0
+    portal.class_progress = {cls.id: pct for cls in classes}
 
 
 def _load_educator(portal, client, ref, educator):
     portal.is_educator = True
     portal.needs_setup = False
     portal.educator = educator
-    portal.educator_classes = sorted(
-        client.educators.get_classes(educator.id),
+    classes = sorted(
+        client.educators.get_classes(educator.id, active_only=False),
         key=lambda c: (c.created is None, c.created),
         reverse=True,
     )
+    portal.educator_classes = classes
+
+    educator_display_name = f"{educator.first_name} {educator.last_name}"
+    portal.class_educator_names = {c.id: educator_display_name for c in classes}
+
+    # Load companion student record to get total_stages (avoids a separate get_stages call)
     student = client.students.get(ref)
     if student is not None:
         portal.student = student
-        _load_story_progress(portal, client, student)
+        total_stages, _ = _load_story_progress(portal, client, student)
+    else:
+        total_stages = len(client.stories.get_stages(_STORY_NAME))
+        portal.story_name = _STORY_NAME
+        portal.total_stages = total_stages
+
+    # Cumulative progress per class: completed stage states / (total_stages × roster size)
+    progress = {}
+    for cls in classes:
+        roster_size = client.classes.get_size(cls.id)
+        max_possible = total_stages * roster_size
+        if max_possible > 0:
+            completed = client.stories.count_class_stage_states(_STORY_NAME, cls.id)
+            progress[cls.id] = completed / max_possible * 100
+        else:
+            progress[cls.id] = 0.0
+    portal.class_progress = progress
 
 
 def _create_oauth_account(portal, client, ref):
@@ -179,11 +214,16 @@ def Layout(children=[]):
     picture = auth_state.picture.value or ""
 
     with rv.App():
-        solara.Title("Cosmic Data Stories")
+        solara.Title("Cosmic Data Stories | PORTAL")
 
         with rv.AppBar(app=True):
             with rv.Container(class_="pa-0 fill-height"):
-                rv.ToolbarTitle(children=["Cosmic Data Stories"])
+                rv.Avatar(
+                    children=[rv.Img(src=str(IMG_PATH / "logo.webp"))],
+                    tile=True,
+                    width=56,
+                )
+                rv.ToolbarTitle(children=["CDS | PORTAL"], class_="ml-4")
 
                 rv.Spacer()
 
@@ -248,13 +288,15 @@ def Layout(children=[]):
 
         with rv.Footer(app=False, padless=True, class_="mt-4"):
             with rv.Container(fluid=False, style_="border-top: 1px solid #424242"):
-                with rv.Row(justify="space-around"):
-                    with rv.Col(cols=12, md=5):
+                with rv.Row(justify="space-between"):
+                    with rv.Col(cols=12, md=6):
                         # rv.Sheet(class_="pa-12", color="grey lighten-2")
-                        solara.Markdown("## Cosmic Data Stories")
+                        solara.Markdown(
+                            "## Cosmic Data Stories", style="margin-top: 0px; padding-top: 0px"
+                        )
                         solara.Markdown(
                             "Center for Astrophysics Harvard | Smithsonian, 60 Garden Street, Cambridge, MA 02138",
-                            style="font-size: 1rem; opacity: 0.75;",
+                            style="font-size: 1rem; opacity: 0.75",
                         )
                         solara.Markdown(
                             "The material contained on this website is based upon work supported "
@@ -264,7 +306,11 @@ def Layout(children=[]):
                             "National Aeronautics and Space Administration.",
                             style="font-size: 0.8rem",
                         )
-                    with rv.Col(cols=12, md=4):
+                        solara.Markdown(
+                            "© 2026 The President and Fellows of Harvard College",
+                            style="font-size: 0.8rem; opacity: 0.6;",
+                        )
+                    with rv.Col(cols=12, md=3):
                         # rv.Sheet(class_="pa-12", color="grey lighten-2")
                         with rv.List():
                             with rv.ListItem():
@@ -296,15 +342,3 @@ def Layout(children=[]):
                                 contain=True,
                                 height="100",
                             )
-
-                with rv.Row(align="center", justify="space-between", class_="py-0"):
-                    with rv.Col(cols="auto"):
-                        solara.Text(
-                            "© 2026 The President and Fellows of Harvard College",
-                            style="font-size: 0.8rem; opacity: 0.6;",
-                        )
-                    with rv.Col(cols="auto"):
-                        solara.Text(
-                            "Cosmic Data Stories",
-                            style="font-size: 0.8rem; opacity: 0.6;",
-                        )

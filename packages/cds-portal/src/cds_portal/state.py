@@ -36,6 +36,9 @@ class PortalState(BaseState):
     educator: Educator | None = StateField(default=None)
     educator_classes: list[Classroom] = StateField(default_factory=list)
 
+    class_educator_names: dict[int, str] = StateField(default_factory=dict)
+    class_progress: dict[int, float] = StateField(default_factory=dict)
+
 
 def get_auth_state() -> AuthState:
     return _get_state(AuthState)
