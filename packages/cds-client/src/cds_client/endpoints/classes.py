@@ -20,7 +20,12 @@ class ClassesEndpoint(BaseEndpoint):
         data = self._session.post(
             "/classes/create", json=info.model_dump(exclude_none=True)
         ).json()
-        return Classroom(**data["class_info"])
+        # The create endpoint returns a partial object; fetch the full record by code.
+        code = data["class_info"]["code"]
+        classroom = self.get(code)
+        if classroom is None:
+            raise RuntimeError(f"Class '{code}' was created but could not be fetched.")
+        return classroom
 
     def delete(self, identifier: str | int) -> None:
         """Delete a class by code or ID."""
