@@ -92,6 +92,21 @@ class StoriesEndpoint(BaseEndpoint):
         data = self._session.get(f"/stage-states/{story_name}", params=params).json()
         return len(data) if isinstance(data, dict) else len(data)
 
+    def count_class_stage_states(self, story_name: str, class_id: int) -> int:
+        """Return the total number of completed stage states across all students in a class.
+
+        Counts raw entries without model instantiation so it is robust to the
+        nested response shape the class-scoped endpoint returns.
+        """
+        data = self._session.get(
+            f"/stage-states/{story_name}", params={"class_id": class_id}
+        ).json()
+        if isinstance(data, list):
+            return len(data)
+        if isinstance(data, dict):
+            return sum(len(v) if isinstance(v, (list, dict)) else 1 for v in data.values())
+        return 0
+
     def put_stage_state(
         self,
         student_id: int,
