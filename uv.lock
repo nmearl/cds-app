@@ -494,6 +494,7 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "solara" },
     { name = "solara-enterprise" },
+    { name = "unique-namer" },
 ]
 
 [package.metadata]
@@ -511,6 +512,7 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.1.0" },
     { name = "solara", specifier = ">=1.44.1" },
     { name = "solara-enterprise", specifier = ">=1.44.1" },
+    { name = "unique-namer", git = "https://github.com/cosmicds/unique-namer" },
 ]
 
 [[package]]
@@ -3702,6 +3704,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/95/32/1a225d6164441be76
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5c/23/c7abc0ca0a1526a0774eca151daeb8de62ec457e77262b66b359c3c7679e/tzdata-2025.2-py2.py3-none-any.whl", hash = "sha256:1a403fada01ff9221ca8044d701868fa132215d84beb92242d9acd2147f667a8", size = 347839, upload-time = "2025-03-23T13:54:41.845Z" },
 ]
+
+[[package]]
+name = "unique-namer"
+version = "1.6.2"
+source = { git = "https://github.com/cosmicds/unique-namer#fdf18f25ecefa566c2c755659ad06965633d6765" }
 
 [[package]]
 name = "uri-template"

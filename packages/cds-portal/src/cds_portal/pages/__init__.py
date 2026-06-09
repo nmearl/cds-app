@@ -437,6 +437,8 @@ def LandingPage():
                                         v_model=student_login_username.value,
                                         on_v_model=student_login_username.set,
                                         outlined=True,
+                                        hide_details=True,
+                                        class_="mb-4"
                                     )
                                     rv.TextField(
                                         label="Class Code",

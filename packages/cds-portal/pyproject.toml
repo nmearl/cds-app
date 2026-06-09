@@ -21,6 +21,8 @@ dependencies = [
     "python-dotenv>=1.1.0",
     "solara>=1.44.1",
     "solara-enterprise>=1.44.1",
+    "solara-state",
+    "unique-namer",
 ]
 
 [build-system]
@@ -31,5 +33,5 @@ build-backend = "hatchling.build"
 cds-client = { workspace = true }
 cds-core = { workspace = true }
 cds-dashboard = { workspace = true }
-solara-state = { git = "https://github.com/nmearl/solara-state.git"}
-unique-namer = { git = "https://github.com/cosmicds/unique-namer"}
+unique-namer = { git = "https://github.com/cosmicds/unique-namer" }
+solara-state = { git = "https://github.com/nmearl/solara-state.git" }
