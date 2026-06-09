@@ -29,9 +29,16 @@ class StudentsEndpoint(BaseEndpoint):
         ).json()
         return StudentCreated(status=data["status"], success=data["success"])
 
-    def get_classes(self, identifier: str | int) -> list[Classroom]:
+    def get_classes(self, identifier: str | int, active_only: bool = True) -> list[Classroom]:
         """Return the classes a student is enrolled in."""
-        data = self._session.get(f"/students/{identifier}/classes").json()
+        if isinstance(identifier, int):
+            # /student-classes/{id} supports the active_only filter
+            data = self._session.get(
+                f"/student-classes/{identifier}",
+                params={"active_only": active_only},
+            ).json()
+        else:
+            data = self._session.get(f"/students/{identifier}/classes").json()
         return [Classroom(**c) for c in data.get("classes", [])]
 
     def remove_from_class(self, identifier: str | int, class_id: int) -> None:

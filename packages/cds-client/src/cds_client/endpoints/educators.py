@@ -33,7 +33,10 @@ class EducatorsEndpoint(BaseEndpoint):
             success=data["success"],
         )
 
-    def get_classes(self, educator_id: int) -> list[Classroom]:
+    def get_classes(self, educator_id: int, active_only: bool = True) -> list[Classroom]:
         """Return the classes managed by an educator."""
-        data = self._session.get(f"/educator-classes/{educator_id}").json()
+        data = self._session.get(
+            f"/educator-classes/{educator_id}",
+            params={"active_only": active_only},
+        ).json()
         return [Classroom(**c) for c in data.get("classes", [])]
