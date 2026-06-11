@@ -129,12 +129,14 @@ def Dashboard(roster: Reactive[Roster] | Roster, student_names = None):
                 StudentNameLoad(roster, internal_student_names, student_names_set=are_names_set)
                 DownloadReport(roster) 
             
-            include_intro = roster.value.state_version == 'monorepo'
-            plabels = labels
-            if not include_intro:
-                plabels = labels[1:]
-                pstage_titles = stage_titles[1:]
-            StudentProgressTable(roster, student_id = student_id, stage_labels = plabels, height='50vh')
+            # only the initial solara versions did not have stage 0.
+            if roster.value.state_version == 'solara':
+                stage_order = list(range(1, len(labels)))
+            else:
+                stage_order = list(range(len(labels)))
+
+            plabels = [labels[index] for index in stage_order]
+            StudentProgressTable(roster, student_id = student_id, stage_labels = plabels, height='50vh', stage_order=stage_order)
         
         labels = labels[1:]
         stage_titles = stage_titles[1:]

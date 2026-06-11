@@ -151,9 +151,13 @@ class QueryCosmicDSApi():
             logger.debug(req.text)
             return None
     
-    def get_hubble_class_measurements(self, class_id, complete_only=True, exclude_merged=False):
-        query = f"complete_only={str(complete_only).lower()}&exclude_merge={str(exclude_merged).lower()}"
-        url = f"{self.url_head}/hubbles_law/measurements/classes/{class_id}?{query}"
+    def get_hubble_class_measurements(self, class_id, student_id=None, complete_only=True, modern_merge = False, exclude_merged=False):
+        if modern_merge and (student_id is not None):
+            query = f"complete_only={str(complete_only).lower()}"
+            url = f"{self.url_head}/hubbles_law/class-measurements/{student_id}/{class_id}?{query}"
+        else:
+            query = f"complete_only={str(complete_only).lower()}&exclude_merge={str(exclude_merged).lower()}"
+            url = f"{self.url_head}/hubbles_law/measurements/classes/{class_id}?{query}"
         logger.debug("Fetching Hubble class measurements from URL:")
         logger.debug(url)
         return self.get(url).json()
@@ -186,7 +190,8 @@ class QueryCosmicDSApi():
         if student_ids is None:
             # filter_fun = lambda m: m['class_id'] == class_id and m['student_id'] in student_id
             # measurements = [m for m in self.get_all_data(story = story, transpose = False)['measurements'] if filter_fun(m)]
-            measurements = self.get_hubble_class_measurements(class_id, exclude_merged=exclude_merged)["measurements"]
+            sid = student_id[0] if class_id > 340 else None # al the merged ones have the same students merged in
+            measurements = self.get_hubble_class_measurements(class_id, student_id=sid, modern_merge = class_id > 340, exclude_merged=exclude_merged)["measurements"]
             # check that there are measurements for every student_id   
         else:
             if isinstance(student_ids, int):

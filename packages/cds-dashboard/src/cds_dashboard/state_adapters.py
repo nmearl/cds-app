@@ -106,12 +106,12 @@ class OldSolaraStateAdapter(StateAdapter):
             responses = self._group_by_stage(free_responses)
             # Extract just the 'response' text 
             ## TODO: follows original logic, but this looks recursive :|
-            responses = {
-                stage_key: {q_key: q_value.get('response', '')
+            newresponses = {
+                stage_key: stage_value['response'] if 'response' in stage_value else {q_key: q_value.get('response', '')
                             for q_key, q_value in stage_value.items()}
                 for stage_key, stage_value in responses.items()
             }
-            student['story_state']['responses'] = responses # type: ignore[reportAssignmentType]
+            student['story_state']['responses'] = newresponses # type: ignore[reportAssignmentType]
         
         # Remove free_responses after extraction (original: if 'free_responses' in roster[i]['story_state'])
         if 'free_responses' in student['story_state']:
@@ -203,9 +203,7 @@ class MonorepoStateAdapter(StateAdapter):
         In the monorepo format, the progress is already 
         calculated by the Stage and stored in the database.
         """
-        return stage['progress']
-    
-    
+        return stage.get('progress', 0.0)
     def fix_stages(self, stage_states: Dict, max_stage_progress: int):
         stage_map = {
             'introduction' : '0',
@@ -217,8 +215,11 @@ class MonorepoStateAdapter(StateAdapter):
             'professional_data': '6',
         }
         for key, value in stage_states.items():
-            stage_states[key]['index'] = int(stage_map[key])
-            set_to_zero = (max_stage_progress is not None) or (max_stage_progress is not None and int(stage_map[key]) > max_stage_progress)
+            stage_index = int(stage_map.get(key, None))
+            if stage_index is None:
+                continue
+            stage_states[key]['index'] = stage_index
+            set_to_zero = (max_stage_progress is not None) and (stage_index > max_stage_progress)
             stage_states[key]['progress'] = 0 if set_to_zero else self.fix_progress(value)
             stage_states[key]['state'] = value
         return stage_states
@@ -264,7 +265,11 @@ class MonorepoStateAdapter(StateAdapter):
                 if isinstance(measurement, dict):
                     measurement['last_modified'] = last_modified
         
-        stage_states = self.fix_stages(story_state.pop('stage_states'), max_stage_progress)
+        stage_states = story_state.pop('stage_states')
+        if max_stage_progress is None:
+            max_route_index = story_state.get('max_route_index')
+            max_stage_progress = max_route_index if max_route_index is not None else 0
+        stage_states = self.fix_stages(stage_states, max_stage_progress)
         # check if student_id is in the story_state
         if 'student_id' not in story_state:
             story_state['student_id'] = student_id

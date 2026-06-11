@@ -334,7 +334,7 @@ resource "aws_cloudfront_distribution" "apps" {
     custom_origin_config {
       http_port              = 80
       https_port             = 443
-      origin_protocol_policy = "https-only"
+      origin_protocol_policy = var.cloudfront_origin_protocol_policy
       origin_ssl_protocols   = ["TLSv1.2"]
 
       origin_keepalive_timeout = 60
@@ -430,7 +430,7 @@ resource "aws_ecs_cluster" "main" {
 
   setting {
     name  = "containerInsights"
-    value = "enabled"
+    value = var.enable_container_insights ? "enabled" : "disabled"
   }
 
   tags = {
@@ -588,7 +588,7 @@ resource "aws_iam_role_policy" "ecs_secrets_policy" {
 
 resource "aws_cloudwatch_log_group" "cds_portal" {
   name              = "/ecs/${var.environment}-cds-portal"
-  retention_in_days = 7
+  retention_in_days = var.app_log_retention_days
   log_group_class   = var.log_group_class
 
   tags = {
@@ -599,7 +599,7 @@ resource "aws_cloudwatch_log_group" "cds_portal" {
 
 resource "aws_cloudwatch_log_group" "cds_hubble" {
   name              = "/ecs/${var.environment}-cds-hubble"
-  retention_in_days = 7
+  retention_in_days = var.app_log_retention_days
   log_group_class   = var.log_group_class
 
   tags = {

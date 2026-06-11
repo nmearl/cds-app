@@ -294,6 +294,19 @@ class Roster():
             return pd.DataFrame(self.data)
         else:
             return pd.DataFrame()
+    
+    def get_merged_subset(self, measurements: pd.DataFrame):
+        # look at the measurements
+        measurements = self.measurements()
+        if 'student_id' in measurements:
+            mids = measurements['student_id']
+        else:
+            return [False] * len(measurements)
+        merged = []
+        for m in mids:
+            merged.append(m not in self.student_ids)
+        return merged
+        
 
     def multiple_choice_questions(self) -> Dict[str, List[MCScore]] | EmptyScoreOrResponse:
         if (self._mc_questions is not None) and (not self._refresh):

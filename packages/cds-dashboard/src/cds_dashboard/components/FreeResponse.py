@@ -63,12 +63,20 @@ def FreeResponseQuestionResponseSummary(question_responses, question_text, names
         for selected_question in question_responses.keys():
             # set_selected_question(k)
             if selected_question is not None:
-                question = question_text[selected_question]['text']
-                shortquestion = question_text[selected_question]['shorttext']
+                # update fall backs for numeric and non-numeric keys
+                # TODO - make sure keys are always strings
+                question_key = str(selected_question)
+                qinfo = question_text.get(question_key, {})
+                if not qinfo:
+                    qinfo = question_text.get(selected_question, {})
+                question = qinfo.get('text', f"Question {question_key}")
+                shortquestion = qinfo.get('shorttext', question)
+                if not shortquestion:
+                    shortquestion = question
                 try:
                     responses = question_responses[selected_question]
                 except:
-                    responses = []
+                    responses = question_responses.get(question_key, [])
                 
                 with rv.ExpansionPanel():
                     with rv.ExpansionPanelHeader():
@@ -104,6 +112,7 @@ def FreeResponseSummary(roster: Reactive[Roster] | Roster, stage_labels=[]):
     else:
         stages = filter(lambda x: x!='student_id', fr_questions.keys())
         stages = sorted(stages, key = roster.get_stage_index )
+    stages = list(stages)
         
     
     with solara.Columns([5, 1], style={"height": "100%"}):
@@ -111,10 +120,11 @@ def FreeResponseSummary(roster: Reactive[Roster] | Roster, stage_labels=[]):
             for stage in stages[-3:]:
                 if str(stage).isnumeric():
                     index = int(stage) - 1
-                    label = stage_labels[index]
+                    label = stage_labels[index] if index < len(stage_labels) else stage
                 else:
                     label = str(stage).replace('_', ' ').capitalize()
-                question_responses = roster.l2d(fr_questions[stage]) # {'key': ['response1', 'response2',...]}
+                question_responses = fr_questions.get(str(stage), fr_questions.get(stage, []))
+                question_responses = roster.l2d(question_responses) # {'key': ['response1', 'response2',...]}
                 with rv.Container(id=f"fr-summary-stage-{stage}"):
                     if (roster.state_version == 'solara'):
                         solara.Markdown(f"### Stage: {label}")
@@ -158,14 +168,15 @@ def FreeResponseQuestionSingleStudent(roster: Reactive[Roster] | Roster, sid = N
     else:
         stages = filter(lambda x: x!='student_id', fr_questions.keys())
         stages = sorted(stages, key = roster.get_stage_index )
+    stages = list(stages)
     
 
     for k in stages[-3:]:
-        v = fr_questions[k]
+        v = fr_questions.get(k, {})
         
         if str(k).isnumeric():
             index = int(k) - 1
-            label = stage_labels[index]
+            label = stage_labels[index] if index < len(stage_labels) else k
         else:
             label = k
         if (roster.state_version == 'solara'):
@@ -176,8 +187,14 @@ def FreeResponseQuestionSingleStudent(roster: Reactive[Roster] | Roster, sid = N
             solara.Markdown("No responses have been recorded yet.")
             continue
         for qkey, qval in v.items():
-            question = question_text[qkey]['text']
-            shortquestion = question_text[qkey]['shorttext']
+            question_key = str(qkey)
+            qinfo = question_text.get(question_key, {})
+            if not qinfo:
+                qinfo = question_text.get(qkey, {})
+            question = qinfo.get('text', f"Question {question_key}")
+            shortquestion = qinfo.get('shorttext', question)
+            if not shortquestion:
+                shortquestion = question
             responses = qval
             FreeResponseQuestion(question = question, 
                                 shortquestion = shortquestion, 

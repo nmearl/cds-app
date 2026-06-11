@@ -61,6 +61,7 @@ def StudentProgressTable(roster: Optional[Reactive[Roster] | Roster] = None,
                          on_student_id = None, 
                          headers = None, 
                          stage_labels = [],
+                         stage_order: Optional[List[int]] = None,
                          height = '100%',
                          ):
     """
@@ -92,10 +93,15 @@ def StudentProgressTable(roster: Optional[Reactive[Roster] | Roster] = None,
 
     
 
+    if stage_order is None:
+        if roster.value.state_version == 'solara':
+            stage_order = list(range(1, 7))
+        else:
+            stage_order = list(range(0, 7))
+
     if headers is None:
         headers = ['', 'Student<br>ID', 'Student<br>Name', 'Points/<br>available', 'Progress<br>(%)'] + stage_labels
     student_ids = roster.value.student_ids if roster.value else list(data.keys())
-    stage_order = list(range(0, len(stage_labels)))
     
     with TableFromRows(headers=headers, table_height=height):
         for student_id_value in student_ids:
