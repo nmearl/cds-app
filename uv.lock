@@ -377,6 +377,7 @@ dependencies = [
     { name = "glue-plotly", extra = ["jupyter"] },
     { name = "httpx" },
     { name = "numpy" },
+    { name = "setuptools" },
 ]
 
 [package.metadata]
@@ -387,6 +388,7 @@ requires-dist = [
     { name = "glue-plotly", extras = ["jupyter"], specifier = "==0.12.3" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.2.4" },
+    { name = "setuptools", specifier = "<72" },
 ]
 
 [[package]]
