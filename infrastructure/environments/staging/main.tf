@@ -35,6 +35,7 @@ module "app_stack" {
   log_group_class                   = var.log_group_class
   app_log_retention_days            = var.app_log_retention_days
   cloudfront_origin_protocol_policy = var.cloudfront_origin_protocol_policy
+  http_listener_redirect_to_https   = var.http_listener_redirect_to_https
   cds_portal_cpu                    = var.cds_portal_cpu
   cds_portal_memory                 = var.cds_portal_memory
   cds_hubble_cpu                    = var.cds_hubble_cpu

@@ -21,6 +21,7 @@ create_private_nat_gateways       = false
 log_group_class                   = "STANDARD"
 app_log_retention_days            = 3
 cloudfront_origin_protocol_policy = "http-only"
+http_listener_redirect_to_https   = false
 
 cds_portal_cpu    = 256
 cds_portal_memory = 512
