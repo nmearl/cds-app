@@ -6,8 +6,9 @@ from cds_client import CDSClient, EducatorCreationInfo, StudentCreationInfo
 from cds_client.auth import hash_user
 from cds_client.cookies import verify_student_cookie
 from cds_core.components.location_helper.location_helper import LocationHelper
+from cds_core.components.theme_toggle import ThemeToggle
 from solara.alias import rv
-from solara.lab import cookies as solara_cookies
+from solara.lab import cookies as solara_cookies, use_dark_effective
 from solara_enterprise import auth
 
 from cds_portal.state import get_auth_state, get_portal_state, get_registration_pending
@@ -73,8 +74,10 @@ def _load_educator(portal, client, ref, educator):
 
     # Cumulative progress per class: completed stage states / (total_stages × roster size)
     progress = {}
+    sizes = {}
     for cls in classes:
         roster_size = client.classes.get_size(cls.id)
+        sizes[cls.id] = roster_size
         max_possible = total_stages * roster_size
         if max_possible > 0:
             completed = client.stories.count_class_stage_states(_STORY_NAME, cls.id)
@@ -82,6 +85,7 @@ def _load_educator(portal, client, ref, educator):
         else:
             progress[cls.id] = 0.0
     portal.class_progress = progress
+    portal.class_sizes = sizes
 
 
 def _create_oauth_account(portal, client, ref):
@@ -127,6 +131,7 @@ def _create_oauth_account(portal, client, ref):
 def Layout(children=[]):
     route_current, routes = solara.use_route()
     show_menu = solara.use_reactive(False)
+    dark_effective = use_dark_effective()
 
     # Still need to watch auth.user to detect the OAuth callback
     oauth_user = auth.user.use_value()
@@ -227,6 +232,8 @@ def Layout(children=[]):
 
                 rv.Spacer()
 
+                ThemeToggle(enable_auto=False, default_theme="dark")
+
                 if authenticated:
                     with rv.Menu(
                         bottom=True,
@@ -287,7 +294,8 @@ def Layout(children=[]):
             pass
 
         with rv.Footer(app=False, padless=True, class_="mt-4"):
-            with rv.Container(fluid=False, style_="border-top: 1px solid #424242"):
+            border = "border-top: 1px solid #424242" if dark_effective else ""
+            with rv.Container(fluid=False, style_=border):
                 with rv.Row(justify="space-between"):
                     with rv.Col(cols=12, md=6):
                         # rv.Sheet(class_="pa-12", color="grey lighten-2")

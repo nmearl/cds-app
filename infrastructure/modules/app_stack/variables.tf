@@ -106,6 +106,12 @@ variable "cloudfront_origin_protocol_policy" {
   default     = "https-only"
 }
 
+variable "http_listener_redirect_to_https" {
+  description = "Whether the ALB HTTP listener redirects to HTTPS instead of forwarding to services"
+  type        = bool
+  default     = true
+}
+
 variable "cds_portal_cpu" {
   description = "CPU units for the cds-portal task definition"
   type        = number

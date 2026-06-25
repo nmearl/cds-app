@@ -3,6 +3,7 @@ from typing import Callable
 import reacton.ipyvuetify as rv
 import solara
 from pydantic import AwareDatetime
+from solara.lab import use_dark_effective
 
 
 def EducatorButtonList(
@@ -40,6 +41,7 @@ def ClassCard(
     expected_size: int,
     created: AwareDatetime,
     active: bool,
+    current_size: int | None = None,
     progress: float = 50.0,
     is_educator: bool = False,
     on_deactivate: Callable[[], None] | None = None,
@@ -76,7 +78,9 @@ def ClassCard(
                             children=[
                                 rv.Html(
                                     tag="div",
-                                    class_="d-inline-flex align-center mr-4",
+                                    class_="d-inline-flex align-center mr-4"
+                                    if not is_educator
+                                    else "",
                                     children=[
                                         rv.Icon(
                                             left=True,
@@ -84,7 +88,9 @@ def ClassCard(
                                             small=True,
                                         ),
                                         f"{educator_name}",
-                                    ],
+                                    ]
+                                    if not is_educator
+                                    else [],
                                 ),
                                 rv.Html(
                                     tag="div",
@@ -107,40 +113,39 @@ def ClassCard(
                                             children=["mdi-account-group"],
                                             small=True,
                                         ),
-                                        f"{expected_size}",
+                                        (
+                                            f"{current_size} / {expected_size}"
+                                            if current_size is not None
+                                            else f"{expected_size}"
+                                        ),
                                     ],
                                 ),
                             ]
                         )
 
                 with rv.CardText():
-                    class_code_field = rv.TextField(
-                        value=f"{class_code}",
-                        outlined=True,
-                        readonly=True,
-                        dense=True,
-                        style_="width:300px",
-                        solo=True,
-                        hide_details=True,
-                        append_icon="mdi-content-copy",
-                        v_slots=[
-                            {
-                                "name": "prepend-inner",
-                                "children": [
-                                    rv.Chip(
-                                        color="blue darken-4",
-                                        label=True,
-                                        class_="mr-4",
-                                        small=True,
-                                        children=["Class Code"],
-                                    )
-                                ],
-                            },
-                        ],
-                    )
+                    with rv.Row(class_="align-center ma-0 pa-0", no_gutters=True):
+                        class_code_chip = rv.Chip(
+                            color="primary darken-2"
+                            if use_dark_effective()
+                            else "primary lighten-2",
+                            label=True,
+                            class_="mr-2 py-5",
+                            children=["Class Code", rv.Icon(right=True, children=["mdi-content-copy"])],
+                        )
+                        class_code_field = rv.TextField(
+                            value=f"{class_code}",
+                            outlined=True,
+                            readonly=True,
+                            dense=True,
+                            style_="max-width:200px",
+                            solo=True,
+                            hide_details=True,
+                            # append_icon="mdi-content-copy"
+                        )
                     rv.use_event(
-                        class_code_field,
-                        "click:append",
+                        class_code_chip,
+                        "click",
                         lambda *_: print("COPY"),
                     )
 
@@ -160,7 +165,16 @@ def ClassCard(
         with rv.CardActions():
             rv.ProgressLinear(
                 value=progress,
-                v_slots=[{"name": "default", "children": [f"{progress:.1f}%"]}],
+                v_slots=[
+                    {
+                        "name": "default",
+                        "children": [
+                            ("Class Progress: "
+                            if is_educator
+                            else "Story Progress: ") + f"{progress:.1f}%"
+                        ],
+                    }
+                ],
                 height=20,
                 rounded=True,
             )

@@ -18,6 +18,7 @@ def EducatorOverview():
 
     search_query = solara.use_reactive("")
     status_filter = solara.use_reactive(1)  # 0=All, 1=Active, 2=Inactive
+    sort_by = solara.use_reactive("Date")
 
     educator = portal_state.educator.value
     verified = educator is not None and educator.verified
@@ -57,8 +58,21 @@ def EducatorOverview():
                 ],
             )
 
+            rv.Select(
+                label="Sort by",
+                v_model=sort_by.value,
+                on_v_model=sort_by.set,
+                items=["Name", "Date", "Students"],
+                outlined=True,
+                dense=True,
+                hide_details=True,
+                class_="ml-2",
+                style_="max-width: 160px",
+            )
+
         educator_names = portal_state.class_educator_names.value
         class_progress = portal_state.class_progress.value
+        class_sizes = portal_state.class_sizes.value
         status = status_filter.value
 
         classrooms = [
@@ -77,6 +91,7 @@ def EducatorOverview():
                     educator_name=educator_names.get(classroom.id, ""),
                     class_code=classroom.code,
                     expected_size=classroom.expected_size,
+                    current_size=class_sizes.get(classroom.id),
                     created=classroom.created,
                     active=bool(classroom.active),
                     progress=class_progress.get(classroom.id, 0.0),
@@ -89,6 +104,14 @@ def EducatorOverview():
                 for value in filtered_classroom.values()
             )
         ]
+
+        sort_key = sort_by.value
+        if sort_key == "Name":
+            classrooms.sort(key=lambda c: (c["class_name"] or "").lower())
+        elif sort_key == "Date":
+            classrooms.sort(key=lambda c: (c["created"] is None, c["created"]), reverse=True)
+        elif sort_key == "Students":
+            classrooms.sort(key=lambda c: c["current_size"] or 0, reverse=True)
 
         for classroom in classrooms:
             code = classroom["class_code"]

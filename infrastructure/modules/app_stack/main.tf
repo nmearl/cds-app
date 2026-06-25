@@ -264,18 +264,53 @@ resource "aws_lb_listener" "http" {
   port              = "80"
   protocol          = "HTTP"
 
-  default_action {
-    type = "redirect"
+  dynamic "default_action" {
+    for_each = var.http_listener_redirect_to_https ? [1] : []
 
-    redirect {
-      port        = "443"
-      protocol    = "HTTPS"
-      status_code = "HTTP_301"
+    content {
+      type = "redirect"
+
+      redirect {
+        port        = "443"
+        protocol    = "HTTPS"
+        status_code = "HTTP_301"
+      }
+    }
+  }
+
+  dynamic "default_action" {
+    for_each = var.http_listener_redirect_to_https ? [] : [1]
+
+    content {
+      type             = "forward"
+      target_group_arn = aws_lb_target_group.cds_portal.arn
     }
   }
 
   tags = {
     Name        = "${var.environment}-http-listener"
+    Environment = var.environment
+  }
+}
+
+resource "aws_lb_listener_rule" "cds_hubble_http" {
+  count        = var.http_listener_redirect_to_https ? 0 : 1
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 100
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.cds_hubble.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/hubbles-law*"]
+    }
+  }
+
+  tags = {
+    Name        = "${var.environment}-hubble-http-rule"
     Environment = var.environment
   }
 }
