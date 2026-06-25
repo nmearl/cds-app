@@ -38,6 +38,7 @@ class PortalState(BaseState):
 
     class_educator_names: dict[int, str] = StateField(default_factory=dict)
     class_progress: dict[int, float] = StateField(default_factory=dict)
+    class_sizes: dict[int, int] = StateField(default_factory=dict)
 
 
 def get_auth_state() -> AuthState:
