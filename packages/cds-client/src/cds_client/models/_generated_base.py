@@ -2,7 +2,7 @@
 #   filename:  https://api.cosmicds.cfa.harvard.edu/docs.json
 #
 # DO NOT EDIT — regenerate with: scripts/generate_models.sh
-#   timestamp: 2026-06-09T01:28:57+00:00
+#   timestamp: 2026-07-02T20:00:25+00:00
 
 from __future__ import annotations
 
@@ -91,7 +91,7 @@ class StageState(BaseModel):
 class StoryState(BaseModel):
     student_id: int
     story_name: str
-    story_state: dict[str, Any]
+    state: dict[str, Any]
     last_modified: AwareDatetime
 
 
