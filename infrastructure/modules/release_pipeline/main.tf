@@ -6,20 +6,6 @@ resource "random_string" "bucket_suffix" {
   upper   = false
 }
 
-resource "aws_ecr_repository" "cds_portal" {
-  name                 = var.portal_repository_name
-  image_tag_mutability = "MUTABLE"
-
-  image_scanning_configuration {
-    scan_on_push = true
-  }
-
-  tags = {
-    Name        = "${var.environment}-cds-portal-ecr"
-    Environment = var.environment
-  }
-}
-
 resource "aws_ecr_repository" "cds_hubble" {
   name                 = var.hubble_repository_name
   image_tag_mutability = "MUTABLE"
@@ -234,49 +220,6 @@ resource "aws_codestarconnections_connection" "github" {
   }
 }
 
-resource "aws_codebuild_project" "cds_portal_build" {
-  name         = "${var.environment}-cds-portal-build"
-  description  = "Build Docker image for CDS Portal and push with commit-SHA tag"
-  service_role = aws_iam_role.codebuild_role.arn
-
-  artifacts {
-    type = "CODEPIPELINE"
-  }
-
-  environment {
-    compute_type                = "BUILD_GENERAL1_SMALL"
-    image                       = "aws/codebuild/amazonlinux2-x86_64-standard:3.0"
-    type                        = "LINUX_CONTAINER"
-    image_pull_credentials_type = "CODEBUILD"
-    privileged_mode             = true
-
-    environment_variable {
-      name  = "AWS_DEFAULT_REGION"
-      value = var.aws_region
-    }
-
-    environment_variable {
-      name  = "AWS_ACCOUNT_ID"
-      value = data.aws_caller_identity.current.account_id
-    }
-
-    environment_variable {
-      name  = "IMAGE_REPO_NAME"
-      value = aws_ecr_repository.cds_portal.name
-    }
-  }
-
-  source {
-    type      = "CODEPIPELINE"
-    buildspec = "buildspec-portal.yml"
-  }
-
-  tags = {
-    Name        = "${var.environment}-cds-portal-build"
-    Environment = var.environment
-  }
-}
-
 resource "aws_codebuild_project" "cds_hubble_build" {
   name         = "${var.environment}-cds-hubble-build"
   description  = "Build Docker image for CDS Hubble and push with commit-SHA tag"
@@ -317,65 +260,6 @@ resource "aws_codebuild_project" "cds_hubble_build" {
   tags = {
     Name        = "${var.environment}-cds-hubble-build"
     Environment = var.environment
-  }
-}
-
-resource "aws_codebuild_project" "cds_portal_staging_deploy" {
-  name         = "${var.environment}-cds-portal-staging-deploy"
-  description  = "Deploy CDS Portal to staging ECS service"
-  service_role = aws_iam_role.codebuild_role.arn
-
-  artifacts {
-    type = "CODEPIPELINE"
-  }
-
-  environment {
-    compute_type                = "BUILD_GENERAL1_SMALL"
-    image                       = "aws/codebuild/amazonlinux2-x86_64-standard:3.0"
-    type                        = "LINUX_CONTAINER"
-    image_pull_credentials_type = "CODEBUILD"
-    privileged_mode             = true
-
-    environment_variable {
-      name  = "AWS_DEFAULT_REGION"
-      value = var.aws_region
-    }
-
-    environment_variable {
-      name  = "AWS_ACCOUNT_ID"
-      value = data.aws_caller_identity.current.account_id
-    }
-
-    environment_variable {
-      name  = "IMAGE_REPO_NAME"
-      value = aws_ecr_repository.cds_portal.name
-    }
-
-    environment_variable {
-      name  = "IMAGE_TAG"
-      value = "staging"
-    }
-
-    environment_variable {
-      name  = "ECS_CLUSTER_NAME"
-      value = var.staging_cluster_name
-    }
-
-    environment_variable {
-      name  = "ECS_SERVICE_NAME"
-      value = var.staging_portal_service_name
-    }
-  }
-
-  source {
-    type      = "CODEPIPELINE"
-    buildspec = "buildspec-deploy.yml"
-  }
-
-  tags = {
-    Name        = "${var.environment}-cds-portal-staging-deploy"
-    Environment = var.environment
-    Stage       = "staging"
   }
 }
 
@@ -435,65 +319,6 @@ resource "aws_codebuild_project" "cds_hubble_staging_deploy" {
     Name        = "${var.environment}-cds-hubble-staging-deploy"
     Environment = var.environment
     Stage       = "staging"
-  }
-}
-
-resource "aws_codebuild_project" "cds_portal_prod_deploy" {
-  name         = "${var.environment}-cds-portal-prod-deploy"
-  description  = "Deploy CDS Portal to production ECS service"
-  service_role = aws_iam_role.codebuild_role.arn
-
-  artifacts {
-    type = "CODEPIPELINE"
-  }
-
-  environment {
-    compute_type                = "BUILD_GENERAL1_SMALL"
-    image                       = "aws/codebuild/amazonlinux2-x86_64-standard:3.0"
-    type                        = "LINUX_CONTAINER"
-    image_pull_credentials_type = "CODEBUILD"
-    privileged_mode             = true
-
-    environment_variable {
-      name  = "AWS_DEFAULT_REGION"
-      value = var.aws_region
-    }
-
-    environment_variable {
-      name  = "AWS_ACCOUNT_ID"
-      value = data.aws_caller_identity.current.account_id
-    }
-
-    environment_variable {
-      name  = "IMAGE_REPO_NAME"
-      value = aws_ecr_repository.cds_portal.name
-    }
-
-    environment_variable {
-      name  = "IMAGE_TAG"
-      value = "latest"
-    }
-
-    environment_variable {
-      name  = "ECS_CLUSTER_NAME"
-      value = var.production_cluster_name
-    }
-
-    environment_variable {
-      name  = "ECS_SERVICE_NAME"
-      value = var.production_portal_service_name
-    }
-  }
-
-  source {
-    type      = "CODEPIPELINE"
-    buildspec = "buildspec-deploy.yml"
-  }
-
-  tags = {
-    Name        = "${var.environment}-cds-portal-prod-deploy"
-    Environment = var.environment
-    Stage       = "production"
   }
 }
 
@@ -588,21 +413,6 @@ resource "aws_codepipeline" "cds_pipeline" {
     name = "Build"
 
     action {
-      name             = "Build-CDS-Portal"
-      category         = "Build"
-      owner            = "AWS"
-      provider         = "CodeBuild"
-      input_artifacts  = ["source_output"]
-      output_artifacts = ["portal_build_output"]
-      version          = "1"
-      run_order        = 1
-
-      configuration = {
-        ProjectName = aws_codebuild_project.cds_portal_build.name
-      }
-    }
-
-    action {
       name             = "Build-CDS-Hubble"
       category         = "Build"
       owner            = "AWS"
@@ -619,70 +429,7 @@ resource "aws_codepipeline" "cds_pipeline" {
   }
 
   stage {
-    name = "Deploy-Staging"
-
-    action {
-      name            = "Deploy-Portal-Staging"
-      category        = "Build"
-      owner           = "AWS"
-      provider        = "CodeBuild"
-      input_artifacts = ["portal_build_output"]
-      version         = "1"
-      run_order       = 1
-
-      configuration = {
-        ProjectName = aws_codebuild_project.cds_portal_staging_deploy.name
-      }
-    }
-
-    action {
-      name            = "Deploy-Hubble-Staging"
-      category        = "Build"
-      owner           = "AWS"
-      provider        = "CodeBuild"
-      input_artifacts = ["hubble_build_output"]
-      version         = "1"
-      run_order       = 1
-
-      configuration = {
-        ProjectName = aws_codebuild_project.cds_hubble_staging_deploy.name
-      }
-    }
-  }
-
-  stage {
-    name = "Approve-Production"
-
-    action {
-      name     = "Manual-Approval"
-      category = "Approval"
-      owner    = "AWS"
-      provider = "Manual"
-      version  = "1"
-
-      configuration = {
-        CustomData      = "Review staging at ${var.staging_portal_url} then approve to deploy to production."
-        NotificationArn = var.approval_notification_arn != "" ? var.approval_notification_arn : null
-      }
-    }
-  }
-
-  stage {
     name = "Deploy-Production"
-
-    action {
-      name            = "Deploy-Portal-Production"
-      category        = "Build"
-      owner           = "AWS"
-      provider        = "CodeBuild"
-      input_artifacts = ["portal_build_output"]
-      version         = "1"
-      run_order       = 1
-
-      configuration = {
-        ProjectName = aws_codebuild_project.cds_portal_prod_deploy.name
-      }
-    }
 
     action {
       name            = "Deploy-Hubble-Production"
@@ -701,17 +448,6 @@ resource "aws_codepipeline" "cds_pipeline" {
 
   tags = {
     Name        = "${var.environment}-cds-pipeline"
-    Environment = var.environment
-  }
-}
-
-resource "aws_cloudwatch_log_group" "codebuild_portal" {
-  name              = "/aws/codebuild/${var.environment}-cds-portal-build"
-  retention_in_days = var.codebuild_log_retention_days
-  log_group_class   = "STANDARD"
-
-  tags = {
-    Name        = "${var.environment}-codebuild-portal-logs"
     Environment = var.environment
   }
 }

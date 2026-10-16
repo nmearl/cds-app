@@ -22,16 +22,8 @@ output "ecs_cluster_name" {
   value = module.app_stack.ecs_cluster_name
 }
 
-output "cds_portal_service_name" {
-  value = module.app_stack.cds_portal_service_name
-}
-
 output "cds_hubble_service_name" {
   value = module.app_stack.cds_hubble_service_name
-}
-
-output "cds_portal_secrets_arn" {
-  value = module.app_stack.cds_portal_secrets_arn
 }
 
 output "cds_hubble_secrets_arn" {

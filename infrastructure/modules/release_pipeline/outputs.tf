@@ -1,8 +1,3 @@
-output "ecr_repository_cds_portal_url" {
-  description = "URL of the CDS Portal ECR repository"
-  value       = aws_ecr_repository.cds_portal.repository_url
-}
-
 output "ecr_repository_cds_hubble_url" {
   description = "URL of the CDS Hubble ECR repository"
   value       = aws_ecr_repository.cds_hubble.repository_url

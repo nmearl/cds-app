@@ -1,7 +1,3 @@
-output "ecr_repository_cds_portal_url" {
-  value = module.release_pipeline.ecr_repository_cds_portal_url
-}
-
 output "ecr_repository_cds_hubble_url" {
   value = module.release_pipeline.ecr_repository_cds_hubble_url
 }

@@ -28,19 +28,9 @@ output "ecs_cluster_name" {
   value       = aws_ecs_cluster.main.name
 }
 
-output "cds_portal_service_name" {
-  description = "Name of the CDS Portal ECS service"
-  value       = aws_ecs_service.cds_portal.name
-}
-
 output "cds_hubble_service_name" {
   description = "Name of the CDS Hubble ECS service"
   value       = aws_ecs_service.cds_hubble.name
-}
-
-output "cds_portal_secrets_arn" {
-  description = "ARN of the CDS Portal secret"
-  value       = aws_secretsmanager_secret.cds_portal_secrets.arn
 }
 
 output "cds_hubble_secrets_arn" {
