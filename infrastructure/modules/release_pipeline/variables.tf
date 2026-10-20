@@ -8,6 +8,18 @@ variable "environment" {
   type        = string
 }
 
+variable "enable_portal" {
+  description = "Whether to deploy a portal"
+  type        = bool
+  default     = true
+}
+
+variable "enable_staging" {
+  description = "Whether to deploy a staging environment"
+  type        = bool
+  default     = true
+}
+
 variable "github_repository" {
   description = "GitHub repository in the format owner/repo"
   type        = string
@@ -46,21 +58,25 @@ variable "codebuild_log_retention_days" {
 variable "staging_portal_url" {
   description = "Staging URL shown in the manual approval step"
   type        = string
+  default     = null
 }
 
 variable "staging_cluster_name" {
   description = "ECS cluster name for staging"
   type        = string
+  default     = null
 }
 
 variable "staging_portal_service_name" {
   description = "CDS Portal ECS service name in staging"
   type        = string
+  default     = null
 }
 
 variable "staging_hubble_service_name" {
   description = "CDS Hubble ECS service name in staging"
   type        = string
+  default     = null
 }
 
 variable "production_cluster_name" {
@@ -71,6 +87,7 @@ variable "production_cluster_name" {
 variable "production_portal_service_name" {
   description = "CDS Portal ECS service name in production"
   type        = string
+  default     = null
 }
 
 variable "production_hubble_service_name" {
