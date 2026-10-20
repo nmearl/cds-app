@@ -9,6 +9,7 @@ resource "random_string" "bucket_suffix" {
 resource "aws_ecr_repository" "cds_portal" {
   name                 = var.portal_repository_name
   image_tag_mutability = "MUTABLE"
+  count                = var.enable_portal ? 1 : 0
 
   image_scanning_configuration {
     scan_on_push = true
@@ -263,7 +264,7 @@ resource "aws_codebuild_project" "cds_portal_build" {
 
     environment_variable {
       name  = "IMAGE_REPO_NAME"
-      value = aws_ecr_repository.cds_portal.name
+      value = aws_ecr_repository.cds_portal[0].name
     }
   }
 
@@ -350,7 +351,7 @@ resource "aws_codebuild_project" "cds_portal_staging_deploy" {
 
     environment_variable {
       name  = "IMAGE_REPO_NAME"
-      value = aws_ecr_repository.cds_portal.name
+      value = aws_ecr_repository.cds_portal[0].name
     }
 
     environment_variable {
@@ -470,7 +471,7 @@ resource "aws_codebuild_project" "cds_portal_prod_deploy" {
 
     environment_variable {
       name  = "IMAGE_REPO_NAME"
-      value = aws_ecr_repository.cds_portal.name
+      value = aws_ecr_repository.cds_portal[0].name
     }
 
     environment_variable {
@@ -603,7 +604,7 @@ resource "aws_codepipeline" "cds_pipeline" {
       run_order        = 1
 
       configuration = {
-        ProjectName = aws_codebuild_project.cds_portal_build.name
+        ProjectName = aws_codebuild_project.cds_portal_build[0].name
       }
     }
 
@@ -638,7 +639,7 @@ resource "aws_codepipeline" "cds_pipeline" {
       count           = var.enable_portal ? 1 : 0
 
       configuration = {
-        ProjectName = aws_codebuild_project.cds_portal_staging_deploy.name
+        ProjectName = aws_codebuild_project.cds_portal_staging_deploy[0].name
       }
     }
 
@@ -652,7 +653,7 @@ resource "aws_codepipeline" "cds_pipeline" {
       run_order       = 1
 
       configuration = {
-        ProjectName = aws_codebuild_project.cds_hubble_staging_deploy.name
+        ProjectName = aws_codebuild_project.cds_hubble_staging_deploy[0].name
       }
     }
   }
@@ -689,7 +690,7 @@ resource "aws_codepipeline" "cds_pipeline" {
       count           = var.enable_portal ? 1 : 0
 
       configuration = {
-        ProjectName = aws_codebuild_project.cds_portal_prod_deploy.name
+        ProjectName = aws_codebuild_project.cds_portal_prod_deploy[0].name
       }
     }
 

@@ -281,11 +281,10 @@ resource "aws_lb_listener" "http" {
 
   dynamic "default_action" {
     for_each = var.http_listener_redirect_to_https ? [] : [1]
-    count    = var.enable_portal ? 1 : 0
 
     content {
       type             = "forward"
-      target_group_arn = aws_lb_target_group.cds_portal.arn
+      target_group_arn = var.enable_portal ? aws_lb_target_group.cds_portal[0].arn : aws_lb_target_group.cds_hubble.arn
     }
   }
 
@@ -299,6 +298,7 @@ resource "aws_lb_listener_rule" "cds_hubble_http" {
   count        = var.http_listener_redirect_to_https ? 0 : 1
   listener_arn = aws_lb_listener.http.arn
   priority     = 100
+  count        = var.enable_portal ? 1 : 0
 
   action {
     type             = "forward"
@@ -326,7 +326,7 @@ resource "aws_lb_listener" "https" {
 
   default_action {
     type             = "forward"
-    target_group_arn = var.enable_portal ? aws_lb_target_group.cds_portal.arn : aws_lb_target_group.cds_hubble.arn
+    target_group_arn = var.enable_portal ? aws_lb_target_group.cds_portal[0].arn : aws_lb_target_group.cds_hubble.arn
   }
 
   tags = {
@@ -528,7 +528,7 @@ data "aws_secretsmanager_secret_version" "hubble_source" {
 
 resource "aws_secretsmanager_secret_version" "cds_portal_seed" {
   count         = var.enable_portal && var.portal_secret_source_arn != null ? 1 : 0
-  secret_id     = aws_secretsmanager_secret.cds_portal_secrets.id
+  secret_id     = aws_secretsmanager_secret.cds_portal_secrets[0].id
   secret_string = data.aws_secretsmanager_secret_version.portal_source[0].secret_string
 }
 
@@ -608,7 +608,7 @@ resource "aws_iam_role_policy" "ecs_secrets_policy" {
         ]
         Resource = concat(
           [aws_secretsmanager_secret.cds_hubble_secrets.arn],
-          var.enable_portal ? [aws_secretsmanager_secret.cds_portal_secrets.arn] : []
+          var.enable_portal ? [aws_secretsmanager_secret.cds_portal_secrets[0].arn] : []
         )
       },
       {
@@ -678,13 +678,13 @@ resource "aws_ecs_task_definition" "cds_portal" {
       secrets = [
         for secret_name in var.portal_secret_names : {
           name      = secret_name
-          valueFrom = "${aws_secretsmanager_secret.cds_portal_secrets.arn}:${secret_name}::"
+          valueFrom = "${aws_secretsmanager_secret.cds_portal_secrets[0].arn}:${secret_name}::"
         }
       ]
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.cds_portal.name
+          "awslogs-group"         = aws_cloudwatch_log_group.cds_portal[0].name
           "awslogs-region"        = var.aws_region
           "awslogs-stream-prefix" = "ecs"
         }
@@ -782,7 +782,7 @@ resource "aws_ecs_service" "cds_portal" {
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.cds_portal.arn
+    target_group_arn = aws_lb_target_group.cds_portal[0].arn
     container_name   = "cds-portal"
     container_port   = 8865
   }
@@ -848,7 +848,7 @@ resource "aws_appautoscaling_target" "cds_portal" {
 
   max_capacity       = var.cds_portal_max_capacity
   min_capacity       = var.cds_portal_min_capacity
-  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.cds_portal.name}"
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.cds_portal[0].name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
 
@@ -904,7 +904,7 @@ resource "aws_appautoscaling_policy" "cds_portal_requests" {
   target_tracking_scaling_policy_configuration {
     predefined_metric_specification {
       predefined_metric_type = "ALBRequestCountPerTarget"
-      resource_label         = "${aws_lb.main.arn_suffix}/${aws_lb_target_group.cds_portal.arn_suffix}"
+      resource_label         = "${aws_lb.main.arn_suffix}/${aws_lb_target_group.cds_portal[0].arn_suffix}"
     }
     target_value       = 500
     scale_in_cooldown  = 300
