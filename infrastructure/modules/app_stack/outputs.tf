@@ -30,7 +30,7 @@ output "ecs_cluster_name" {
 
 output "cds_portal_service_name" {
   description = "Name of the CDS Portal ECS service"
-  value       = aws_ecs_service.cds_portal.name
+  value       = var.enable_portal ? aws_ecs_service.cds_portal[0].name : null
 }
 
 output "cds_hubble_service_name" {
@@ -40,7 +40,7 @@ output "cds_hubble_service_name" {
 
 output "cds_portal_secrets_arn" {
   description = "ARN of the CDS Portal secret"
-  value       = aws_secretsmanager_secret.cds_portal_secrets.arn
+  value       = var.enable_portal ? aws_secretsmanager_secret.cds_portal_secrets[0].arn : null
 }
 
 output "cds_hubble_secrets_arn" {

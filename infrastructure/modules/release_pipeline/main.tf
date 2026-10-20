@@ -9,6 +9,7 @@ resource "random_string" "bucket_suffix" {
 resource "aws_ecr_repository" "cds_portal" {
   name                 = var.portal_repository_name
   image_tag_mutability = "MUTABLE"
+  count                = var.enable_portal ? 1 : 0
 
   image_scanning_configuration {
     scan_on_push = true
@@ -238,6 +239,7 @@ resource "aws_codebuild_project" "cds_portal_build" {
   name         = "${var.environment}-cds-portal-build"
   description  = "Build Docker image for CDS Portal and push with commit-SHA tag"
   service_role = aws_iam_role.codebuild_role.arn
+  count        = var.enable_portal ? 1 : 0
 
   artifacts {
     type = "CODEPIPELINE"
@@ -262,7 +264,7 @@ resource "aws_codebuild_project" "cds_portal_build" {
 
     environment_variable {
       name  = "IMAGE_REPO_NAME"
-      value = aws_ecr_repository.cds_portal.name
+      value = aws_ecr_repository.cds_portal[0].name
     }
   }
 
@@ -324,6 +326,7 @@ resource "aws_codebuild_project" "cds_portal_staging_deploy" {
   name         = "${var.environment}-cds-portal-staging-deploy"
   description  = "Deploy CDS Portal to staging ECS service"
   service_role = aws_iam_role.codebuild_role.arn
+  count        = var.enable_staging && var.enable_portal ? 1 : 0
 
   artifacts {
     type = "CODEPIPELINE"
@@ -348,7 +351,7 @@ resource "aws_codebuild_project" "cds_portal_staging_deploy" {
 
     environment_variable {
       name  = "IMAGE_REPO_NAME"
-      value = aws_ecr_repository.cds_portal.name
+      value = aws_ecr_repository.cds_portal[0].name
     }
 
     environment_variable {
@@ -383,6 +386,7 @@ resource "aws_codebuild_project" "cds_hubble_staging_deploy" {
   name         = "${var.environment}-cds-hubble-staging-deploy"
   description  = "Deploy CDS Hubble to staging ECS service"
   service_role = aws_iam_role.codebuild_role.arn
+  count        = var.enable_staging ? 1 : 0
 
   artifacts {
     type = "CODEPIPELINE"
@@ -442,6 +446,7 @@ resource "aws_codebuild_project" "cds_portal_prod_deploy" {
   name         = "${var.environment}-cds-portal-prod-deploy"
   description  = "Deploy CDS Portal to production ECS service"
   service_role = aws_iam_role.codebuild_role.arn
+  count        = var.enable_portal ? 1 : 0
 
   artifacts {
     type = "CODEPIPELINE"
@@ -466,7 +471,7 @@ resource "aws_codebuild_project" "cds_portal_prod_deploy" {
 
     environment_variable {
       name  = "IMAGE_REPO_NAME"
-      value = aws_ecr_repository.cds_portal.name
+      value = aws_ecr_repository.cds_portal[0].name
     }
 
     environment_variable {
@@ -585,7 +590,8 @@ resource "aws_codepipeline" "cds_pipeline" {
   }
 
   stage {
-    name = "Build"
+    name  = "Build"
+    count = var.enable_portal ? 1 : 0
 
     action {
       name             = "Build-CDS-Portal"
@@ -598,7 +604,7 @@ resource "aws_codepipeline" "cds_pipeline" {
       run_order        = 1
 
       configuration = {
-        ProjectName = aws_codebuild_project.cds_portal_build.name
+        ProjectName = aws_codebuild_project.cds_portal_build[0].name
       }
     }
 
@@ -619,7 +625,8 @@ resource "aws_codepipeline" "cds_pipeline" {
   }
 
   stage {
-    name = "Deploy-Staging"
+    name  = "Deploy-Staging"
+    count = var.enable_staging ? 1 : 0
 
     action {
       name            = "Deploy-Portal-Staging"
@@ -629,9 +636,10 @@ resource "aws_codepipeline" "cds_pipeline" {
       input_artifacts = ["portal_build_output"]
       version         = "1"
       run_order       = 1
+      count           = var.enable_portal ? 1 : 0
 
       configuration = {
-        ProjectName = aws_codebuild_project.cds_portal_staging_deploy.name
+        ProjectName = aws_codebuild_project.cds_portal_staging_deploy[0].name
       }
     }
 
@@ -645,13 +653,14 @@ resource "aws_codepipeline" "cds_pipeline" {
       run_order       = 1
 
       configuration = {
-        ProjectName = aws_codebuild_project.cds_hubble_staging_deploy.name
+        ProjectName = aws_codebuild_project.cds_hubble_staging_deploy[0].name
       }
     }
   }
 
   stage {
-    name = "Approve-Production"
+    name  = "Approve-Production"
+    count = var.enable_staging ? 1 : 0
 
     action {
       name     = "Manual-Approval"
@@ -678,9 +687,10 @@ resource "aws_codepipeline" "cds_pipeline" {
       input_artifacts = ["portal_build_output"]
       version         = "1"
       run_order       = 1
+      count           = var.enable_portal ? 1 : 0
 
       configuration = {
-        ProjectName = aws_codebuild_project.cds_portal_prod_deploy.name
+        ProjectName = aws_codebuild_project.cds_portal_prod_deploy[0].name
       }
     }
 
@@ -709,6 +719,7 @@ resource "aws_cloudwatch_log_group" "codebuild_portal" {
   name              = "/aws/codebuild/${var.environment}-cds-portal-build"
   retention_in_days = var.codebuild_log_retention_days
   log_group_class   = "STANDARD"
+  count             = var.enable_portal ? 1 : 0
 
   tags = {
     Name        = "${var.environment}-codebuild-portal-logs"

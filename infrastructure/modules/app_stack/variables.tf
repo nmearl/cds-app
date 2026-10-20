@@ -8,6 +8,12 @@ variable "environment" {
   type        = string
 }
 
+variable "enable_portal" {
+  description = "Whether to deploy a portal"
+  type        = bool
+  default     = true
+}
+
 variable "site_domain_name" {
   description = "Primary DNS name for this environment"
   type        = string
@@ -21,6 +27,7 @@ variable "certificate_domain" {
 variable "cds_portal_image" {
   description = "Docker image URI for cds-portal"
   type        = string
+  default     = null
 }
 
 variable "cds_hubble_image" {

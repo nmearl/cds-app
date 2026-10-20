@@ -1,6 +1,6 @@
 output "ecr_repository_cds_portal_url" {
   description = "URL of the CDS Portal ECR repository"
-  value       = aws_ecr_repository.cds_portal.repository_url
+  value       = var.enable_portal ? aws_ecr_repository.cds_portal[0].repository_url : null
 }
 
 output "ecr_repository_cds_hubble_url" {
