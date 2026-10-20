@@ -215,6 +215,7 @@ resource "aws_lb_target_group" "cds_portal" {
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
   target_type = "ip"
+  count       = var.enable_portal ? 1 : 0
 
   health_check {
     enabled             = true
@@ -280,6 +281,7 @@ resource "aws_lb_listener" "http" {
 
   dynamic "default_action" {
     for_each = var.http_listener_redirect_to_https ? [] : [1]
+    count    = var.enable_portal ? 1 : 0
 
     content {
       type             = "forward"
@@ -324,7 +326,7 @@ resource "aws_lb_listener" "https" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.cds_portal.arn
+    target_group_arn = var.enable_portal ? aws_lb_target_group.cds_portal.arn : aws_lb_target_group.cds_hubble.arn
   }
 
   tags = {
@@ -336,6 +338,7 @@ resource "aws_lb_listener" "https" {
 resource "aws_lb_listener_rule" "cds_hubble_https" {
   listener_arn = aws_lb_listener.https.arn
   priority     = 100
+  count        = var.enable_portal ? 1 : 0
 
   action {
     type             = "forward"
@@ -495,6 +498,7 @@ resource "aws_ecs_cluster_capacity_providers" "main" {
 resource "aws_secretsmanager_secret" "cds_portal_secrets" {
   name        = "${var.environment}/cds-portal/secrets"
   description = "Secrets for CDS Portal application"
+  count       = var.enable_portal ? 1 : 0
 
   tags = {
     Name        = "${var.environment}-cds-portal-secrets"
@@ -513,7 +517,7 @@ resource "aws_secretsmanager_secret" "cds_hubble_secrets" {
 }
 
 data "aws_secretsmanager_secret_version" "portal_source" {
-  count     = var.portal_secret_source_arn != null ? 1 : 0
+  count     = var.enable_portal && var.portal_secret_source_arn != null ? 1 : 0
   secret_id = var.portal_secret_source_arn
 }
 
@@ -523,7 +527,7 @@ data "aws_secretsmanager_secret_version" "hubble_source" {
 }
 
 resource "aws_secretsmanager_secret_version" "cds_portal_seed" {
-  count         = var.portal_secret_source_arn != null ? 1 : 0
+  count         = var.enable_portal && var.portal_secret_source_arn != null ? 1 : 0
   secret_id     = aws_secretsmanager_secret.cds_portal_secrets.id
   secret_string = data.aws_secretsmanager_secret_version.portal_source[0].secret_string
 }
@@ -536,6 +540,7 @@ resource "aws_secretsmanager_secret_version" "cds_hubble_seed" {
 
 resource "aws_ssm_parameter" "cds_portal_env_vars" {
   for_each = var.portal_environment_vars
+  count    = var.enable_portal ? 1 : 0
 
   name  = "/${var.environment}/cds-portal/env/${each.key}"
   type  = "String"
@@ -601,10 +606,10 @@ resource "aws_iam_role_policy" "ecs_secrets_policy" {
         Action = [
           "secretsmanager:GetSecretValue"
         ]
-        Resource = [
-          aws_secretsmanager_secret.cds_portal_secrets.arn,
-          aws_secretsmanager_secret.cds_hubble_secrets.arn
-        ]
+        Resource = concat(
+          [aws_secretsmanager_secret.cds_hubble_secrets.arn],
+          var.enable_portal ? [aws_secretsmanager_secret.cds_portal_secrets.arn] : []
+        )
       },
       {
         Effect = "Allow"
@@ -612,10 +617,10 @@ resource "aws_iam_role_policy" "ecs_secrets_policy" {
           "ssm:GetParameters",
           "ssm:GetParameter"
         ]
-        Resource = [
-          "arn:aws:ssm:${var.aws_region}:*:parameter/${var.environment}/cds-portal/env/*",
-          "arn:aws:ssm:${var.aws_region}:*:parameter/${var.environment}/cds-hubble/env/*"
-        ]
+        Resource = concat(
+          ["arn:aws:ssm:${var.aws_region}:*:parameter/${var.environment}/cds-hubble/env/*"],
+          var.enable_portal ? ["arn:aws:ssm:${var.aws_region}:*:parameter/${var.environment}/cds-portal/env/*"] : []
+        )
       }
     ]
   })
@@ -625,6 +630,7 @@ resource "aws_cloudwatch_log_group" "cds_portal" {
   name              = "/ecs/${var.environment}-cds-portal"
   retention_in_days = var.app_log_retention_days
   log_group_class   = var.log_group_class
+  count             = var.enable_portal ? 1 : 0
 
   tags = {
     Name        = "${var.environment}-cds-portal-logs"
@@ -650,6 +656,7 @@ resource "aws_ecs_task_definition" "cds_portal" {
   cpu                      = var.cds_portal_cpu
   memory                   = var.cds_portal_memory
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  count                    = var.enable_portal ? 1 : 0
 
   container_definitions = jsonencode([
     {
@@ -745,6 +752,7 @@ resource "aws_ecs_service" "cds_portal" {
   task_definition = aws_ecs_task_definition.cds_portal.arn
   desired_count   = var.cds_portal_min_capacity
   launch_type     = var.use_capacity_provider_strategy ? null : "FARGATE"
+  count           = var.enable_portal ? 1 : 0
 
   dynamic "capacity_provider_strategy" {
     for_each = var.use_capacity_provider_strategy ? [
@@ -836,7 +844,7 @@ resource "aws_ecs_service" "cds_hubble" {
 }
 
 resource "aws_appautoscaling_target" "cds_portal" {
-  count = var.enable_autoscaling ? 1 : 0
+  count = var.enable_portal && var.enable_autoscaling ? 1 : 0
 
   max_capacity       = var.cds_portal_max_capacity
   min_capacity       = var.cds_portal_min_capacity
@@ -866,7 +874,7 @@ resource "aws_appautoscaling_target" "cds_hubble" {
 }
 
 resource "aws_appautoscaling_policy" "cds_portal_cpu" {
-  count = var.enable_autoscaling ? 1 : 0
+  count = var.enable_portal && var.enable_autoscaling ? 1 : 0
 
   name               = "${var.environment}-cds-portal-cpu-scaling"
   policy_type        = "TargetTrackingScaling"
@@ -885,7 +893,7 @@ resource "aws_appautoscaling_policy" "cds_portal_cpu" {
 }
 
 resource "aws_appautoscaling_policy" "cds_portal_requests" {
-  count = var.enable_autoscaling ? 1 : 0
+  count = var.enable_portal && var.enable_autoscaling ? 1 : 0
 
   name               = "${var.environment}-cds-portal-request-scaling"
   policy_type        = "TargetTrackingScaling"
