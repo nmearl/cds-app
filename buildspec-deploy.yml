@@ -1,7 +1,7 @@
 version: 0.2
 
-# Shared deploy buildspec used by all four deploy CodeBuild projects
-# (portal-staging, hubble-staging, portal-prod, hubble-prod).
+# Shared deploy buildspec used by the staging, production, and standalone demo
+# deploy CodeBuild projects.
 #
 # The calling CodeBuild project supplies these environment variables:
 #   IMAGE_REPO_NAME  — ECR repository name (e.g. cds-portal)
