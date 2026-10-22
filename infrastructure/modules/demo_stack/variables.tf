@@ -40,6 +40,20 @@ variable "hubble_secret_names" {
   description = "Keys read from the demo Hubble Secrets Manager secret"
   type        = list(string)
   default = [
+    "SOLARA_SESSION_SECRET_KEY",
+    "SOLARA_OAUTH_CLIENT_ID",
+    "SOLARA_OAUTH_CLIENT_SECRET",
+    "SOLARA_OAUTH_API_BASE_URL",
+    "SOLARA_OAUTH_SCOPE",
+    "SOLARA_SESSION_HTTPS_ONLY",
+    "CDS_API_KEY",
+    "SOLARA_OAUTH_PRIVATE",
+    "SOLARA_APP",
+    "SOLARA_ROOT_PATH",
+    "SOLARA_BASE_URL",
+    "CDS_SHOW_TEAM_INTERFACE",
+    "GOOGLE_ANALYTICS_TAG",
+    "AWS_EBS_URL",
     "CDS_FORCE_DEMO",
     "CDS_DISABLE_DB",
   ]

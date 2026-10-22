@@ -37,7 +37,8 @@ Repeat the same pattern for `demo`, `production`, and `delivery`.
 
 ## Demo Bootstrap
 
-The demo task expects `CDS_FORCE_DEMO` and `CDS_DISABLE_DB` in the
+The demo task reads the same Hubble secret keys as staging and production,
+plus `CDS_FORCE_DEMO` and `CDS_DISABLE_DB`, from the independent
 `demo/cds-hubble/secrets` Secrets Manager secret. Terraform creates the secret
 container but deliberately does not manage its value. Bootstrap it before the
 full deployment:
@@ -48,7 +49,8 @@ terraform init
 terraform apply -target=aws_secretsmanager_secret.hubble
 ```
 
-Add this JSON as the secret value in AWS Secrets Manager:
+Copy the JSON value from `production/cds-hubble/secrets` into the demo secret,
+then add these entries:
 
 ```json
 {
@@ -56,6 +58,11 @@ Add this JSON as the secret value in AWS Secrets Manager:
   "CDS_DISABLE_DB": "true"
 }
 ```
+
+Every mapped key must exist in the demo secret or ECS will reject the task at
+startup. Before deploying, update environment-specific values such as
+`SOLARA_ROOT_PATH`, `SOLARA_BASE_URL`, and `AWS_EBS_URL` for the root-mounted
+demo and its initial CloudFront hostname.
 
 Then run `terraform plan` and `terraform apply` from the same directory. The
 new CodeStar connection must be authorized in the AWS console before the demo
@@ -68,11 +75,3 @@ can only be attached to one CloudFront distribution at a time. After the old
 production distribution is retired, set `site_domain_name` to
 `app.cosmicds.cfa.harvard.edu`, set `certificate_domain` to the matching issued
 ACM certificate domain, apply again, and point DNS at the demo distribution.
-
-## Migration Notes
-
-- The old top-level Terraform root was removed as the active entry point.
-- Existing local state files in `infrastructure/` were left in place as
-  historical artifacts and should not be used for future applies.
-- Before applying `delivery`, fill in the real ECS cluster and service names
-  from the `staging` and `production` outputs.
